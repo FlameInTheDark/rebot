@@ -96,6 +96,8 @@ services:
 
   influxdb:
     container_name: rebot-influx
+    networks:
+      shared-network:
     image: quay.io/influxdb/influxdb:v2.0.3
     volumes:
       - influxdbv2:/.influxdbv2
@@ -110,6 +112,8 @@ services:
   influxdb-cli:
     links:
       - influxdb
+    networks:
+      shared-network:
     image: quay.io/influxdb/influxdb:v2.0.3
     entrypoint: influx setup --bucket mybucket -t mytoken -o myorg --username=myusername --password=passwordpasswordpassword --host=http://influxdb:8086 -f
     restart: on-failure:10

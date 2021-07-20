@@ -22,6 +22,7 @@ func APICommand() *cli.Command {
 				Name:  "log",
 				Value: "prod",
 				Usage: "set log level (prod, debug)",
+				EnvVars: []string{"LOG_LEVEL"},
 			},
 		},
 		Action: func(c *cli.Context) error {

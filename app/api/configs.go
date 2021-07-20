@@ -17,6 +17,12 @@ type Config struct {
 		Username string `env:"DATABASE_USERNAME,default=postgres"`
 		Password string `env:"DATABASE_PASS"`
 	}
+	Metrics struct {
+		Host   string `env:"METRICS_HOST,default=influxdb"`
+		Port   int    `env:"METRICS_PORT,default=8086"`
+		Bucket string `env:"METRICS_BUCKET,default=rebot"`
+		Token  string `env:"METRICS_TOKEN"`
+	}
 }
 
 func LoadConfig() (*Config, error) {

@@ -11,7 +11,9 @@ build-api:
 		--build-arg BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"` \
 		.
 
-run: up wait-db ## Up all services and seed database
+install: build up wait-db ## Build containers and up all services
+
+run: up wait-db ## Up all services
 
 PROJECT_NAME="rebot"
 
