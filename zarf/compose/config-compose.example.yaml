@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  rebot-api:
+    environment:
+      - HTTP_PORT=8080
+      - DATABASE_HOST=db
+      - DATABASE_PORT=5432
+      - DATABASE_USERNAME=postgres
+
+  db:
+    environment:
+      - POSTGRES_PASSWORD=postgres
+
+  influxdb-cli:
+    entrypoint: influx setup --bucket mybucket -t mytoken -o myorg --username=myusername --password=passwordpasswordpassword --host=http://influxdb:8086 -f

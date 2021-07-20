@@ -1,0 +1,98 @@
+version: '3.8'
+
+networks:
+  shared-network:
+    driver: bridge
+
+services:
+  rebot-api:
+    container_name: rebot-api
+    networks:
+      shared-network:
+    image: "rebot-api-amd64:latest"
+    command: ["api"]
+    entrypoint: ["./api"]
+    restart: always
+    ports:
+      - 8080:8080
+    depends_on:
+      - db
+      - mq
+    logging:
+      driver: loki
+      options:
+        loki-url: http://localhost:3100/loki/api/v1/push
+        loki-external-labels: job=rebot/service/api,environment=development
+
+  db:
+    container_name: rebot-db
+    networks:
+      - shared-network
+    image: postgres:13.3-alpine
+    ports:
+      - 5433:5432
+    expose:
+      - 5433
+
+  mq:
+    container_name: rebot-mq
+    networks:
+      - shared-network
+    image: nats:2.3.2-alpine3.14
+    command: --js
+    restart: always
+    ports:
+      - 4222:4222
+    expose:
+      - 4222
+
+  loki:
+    container_name: rebot-loki
+    image: grafana/loki:2.0.0
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - shared-network
+
+  promtail:
+    container_name: rebot-promtail
+    image: grafana/promtail:2.0.0
+    volumes:
+      - /var/log:/var/log
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - shared-network
+
+  grafana:
+    container_name: rebot-grafana
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    networks:
+      - shared-network
+
+  wait:
+    image: dokku/wait
+    networks:
+      - shared-network
+
+  influxdb:
+    container_name: rebot-influx
+    image: quay.io/influxdb/influxdb:v2.0.3
+    volumes:
+      - influxdbv2:/.influxdbv2
+    ports:
+      - "8086:8086"
+
+  influxdb-cli:
+    links:
+      - influxdb
+    image: quay.io/influxdb/influxdb:v2.0.3
+    entrypoint: influx setup --bucket mybucket -t mytoken -o myorg --username=myusername --password=passwordpasswordpassword --host=http://influxdb:8086 -f
+    restart: on-failure:10
+    depends_on:
+      - influxdb
+
+volumes:
+  influxdbv2:

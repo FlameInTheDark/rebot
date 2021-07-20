@@ -1,0 +1,15 @@
+version: "1"
+packages:
+  - name: "usersdb"
+    path: "business/models/usersdb"
+    queries: "schema/users.sql"
+    schema: "schema/users.sql"
+    emit_json_tags: true
+    emit_interface: true
+
+  - name: "guildsdb"
+    path: "business/models/guildsdb"
+    queries: "schema/guilds.sql"
+    schema: "schema/guilds.sql"
+    emit_json_tags: true
+    emit_interface: true
