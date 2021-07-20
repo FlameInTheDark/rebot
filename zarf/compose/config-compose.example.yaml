@@ -14,3 +14,6 @@ services:
 
   influxdb-cli:
     entrypoint: influx setup --bucket mybucket -t mytoken -o myorg --username=myusername --password=passwordpasswordpassword --host=http://influxdb:8086 -f
+
+  db-migrate:
+    command: -path=/migrations/ -database=postgres://postgres:postgres@db:5432/postgres?sslmode=disable up 2

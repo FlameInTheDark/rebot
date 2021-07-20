@@ -33,6 +33,23 @@ services:
       - 5433:5432
     expose:
       - 5433
+    logging:
+      driver: loki
+      options:
+        loki-url: http://localhost:3100/loki/api/v1/push
+        loki-external-labels: job=rebot/service/db,environment=development
+
+  db-migrate:
+    image: migrate/migrate:v4.14.1
+    networks:
+      shared-network:
+    volumes:
+      - type: bind
+        source: ${PWD}/migration
+        target: /migrations
+    depends_on:
+      - db
+    restart: on-failure:10
 
   mq:
     container_name: rebot-mq
@@ -45,6 +62,11 @@ services:
       - 4222:4222
     expose:
       - 4222
+    logging:
+      driver: loki
+      options:
+        loki-url: http://localhost:3100/loki/api/v1/push
+        loki-external-labels: job=rebot/service/mq,environment=development
 
   loki:
     container_name: rebot-loki
@@ -72,11 +94,6 @@ services:
     networks:
       - shared-network
 
-  wait:
-    image: dokku/wait
-    networks:
-      - shared-network
-
   influxdb:
     container_name: rebot-influx
     image: quay.io/influxdb/influxdb:v2.0.3
@@ -84,6 +101,11 @@ services:
       - influxdbv2:/.influxdbv2
     ports:
       - "8086:8086"
+    logging:
+      driver: loki
+      options:
+        loki-url: http://localhost:3100/loki/api/v1/push
+        loki-external-labels: job=rebot/service/influxdb,environment=development
 
   influxdb-cli:
     links:
@@ -93,6 +115,11 @@ services:
     restart: on-failure:10
     depends_on:
       - influxdb
+
+  wait:
+    image: dokku/wait
+    networks:
+      - shared-network
 
 volumes:
   influxdbv2:
