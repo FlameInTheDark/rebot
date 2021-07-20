@@ -1,12 +1,7 @@
 package main
 
 import (
-	"context"
 	"fmt"
-	"os"
-	"os/signal"
-	"time"
-
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 
@@ -46,32 +41,7 @@ func APICommand() *cli.Command {
 			defer logger.Sync()
 
 			logger.Info("service is starting", zap.String("app-name", c.App.Name), zap.String("app-version", c.App.Version))
-			srv, err := API(logger)
-
-			ch := make(chan os.Signal, 1)
-			signal.Notify(ch, os.Interrupt)
-			go func() {
-				for range ch {
-					// sig is a ^C, handle it
-					logger.Info("Service shutting down..")
-
-					// create context with timeout
-					ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-					defer cancel()
-
-					// start http shutdown
-					srv.Shutdown(ctx)
-
-					// verify, in worst case call cancel via defer
-					select {
-					case <-time.After(21 * time.Second):
-						logger.Info("Not all connections done")
-					case <-ctx.Done():
-
-					}
-				}
-			}()
-			return srv.ListenAndServe()
+			return RunAPIServer(logger)
 		},
 	}
 }

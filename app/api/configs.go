@@ -12,10 +12,13 @@ type Config struct {
 		Port int `env:"HTTP_PORT,default=8080"`
 	}
 	Database struct {
-		Host     string `env:"DATABASE_HOST,default=db"`
-		Port     int    `env:"DATABASE_PORT,default=5432"`
-		Username string `env:"DATABASE_USERNAME,default=postgres"`
-		Password string `env:"DATABASE_PASS"`
+		Host       string `env:"DATABASE_HOST,default=db"`
+		Port       int    `env:"DATABASE_PORT,default=5432"`
+		Database   string `env:"DATABASE_DBNAME,default=postgres"`
+		Username   string `env:"DATABASE_USERNAME,default=postgres"`
+		Password   string `env:"DATABASE_PASSWORD,default=postgres"`
+		DisableTLS bool   `env:"DATABASE_DISABLE_TLS,default=true"`
+		CetrPath   string `env:"DATABASE_CERT_PATH"`
 	}
 	Metrics struct {
 		Host   string `env:"METRICS_HOST,default=influxdb"`
