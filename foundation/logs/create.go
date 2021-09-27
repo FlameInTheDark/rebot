@@ -1,11 +1,29 @@
 package logs
 
-import "go.uber.org/zap"
+import (
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"os"
+)
 
-func CreateLogger() (*zap.Logger, error) {
-	return zap.NewProduction()
+//CreateLogger creates production logger
+func CreateLogger() *zap.Logger {
+	w := zapcore.AddSync(os.Stdout)
+	core := zapcore.NewCore(
+		zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
+		w,
+		zap.InfoLevel,
+	)
+	return zap.New(core)
 }
 
-func CreateLoggerDebug() (*zap.Logger, error) {
-	return zap.NewDevelopment()
+// CreateLoggerDebug creates debug logger
+func CreateLoggerDebug() *zap.Logger {
+	w := zapcore.AddSync(os.Stdout)
+	core := zapcore.NewCore(
+		zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
+		w,
+		zap.DebugLevel,
+	)
+	return zap.New(core)
 }

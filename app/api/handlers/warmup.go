@@ -5,10 +5,12 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+//Services contains business logic
 type Services struct {
 	Users *users.Service
 }
 
+//WarmupServices creates services
 func WarmupServices(db *sqlx.DB) *Services {
 	var services Services
 

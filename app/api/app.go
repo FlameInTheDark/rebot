@@ -3,19 +3,23 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/FlameInTheDark/rebot/app/api/handlers"
-	"github.com/FlameInTheDark/rebot/foundation/database"
-	"github.com/FlameInTheDark/rebot/foundation/logs"
-	"github.com/go-chi/chi/v5"
-	"go.uber.org/zap"
+	"github.com/go-chi/chi/v5/middleware"
 	"net/http"
 	"os"
 	"os/signal"
 	"time"
+
+	"github.com/go-chi/chi/v5"
+	"go.uber.org/zap"
+
+	"github.com/FlameInTheDark/rebot/app/api/handlers"
+	"github.com/FlameInTheDark/rebot/foundation/database"
+	"github.com/FlameInTheDark/rebot/foundation/logs"
 )
 
+// RunAPIServer create and start rest api server
 func RunAPIServer(logger *zap.Logger) error {
-	conf, err := LoadConfig()
+	conf, err := GetConfig()
 	if err != nil {
 		logger.Error("configuration not loaded", zap.Error(err))
 		return err
@@ -29,7 +33,7 @@ func RunAPIServer(logger *zap.Logger) error {
 		Password:   conf.Database.Password,
 		DisableTLS: conf.Database.DisableTLS,
 		CertPath:   conf.Database.CetrPath,
-		Logger: logs.NewDBLogger(logger),
+		Logger:     logs.NewDBLogger(logger),
 	}
 
 	db, err := database.NewConnection(dbConfig)
@@ -39,7 +43,10 @@ func RunAPIServer(logger *zap.Logger) error {
 	}
 
 	r := chi.NewRouter()
-	r.Use(logs.HttpLoggerMiddleware(logger))
+	r.Use(
+		logs.HttpLoggerMiddleware(logger),
+		middleware.Recoverer,
+	)
 
 	handlers.API(r, handlers.WarmupServices(db), logger)
 
@@ -53,17 +60,15 @@ func RunAPIServer(logger *zap.Logger) error {
 	signal.Notify(ch, os.Interrupt)
 	go func() {
 		for range ch {
-			// sig is a ^C, handle it
 			logger.Info("Service shutting down..")
 
-			// create context with timeout
 			ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 			defer cancel()
 
-			// start http shutdown
-			srv.Shutdown(ctx)
-
-			// verify, in worst case call cancel via defer
+			err := srv.Shutdown(ctx)
+			if err != nil {
+				logger.Error("API server shutdown error", zap.Error(err))
+			}
 			select {
 			case <-time.After(21 * time.Second):
 				logger.Info("Not all connections done")
