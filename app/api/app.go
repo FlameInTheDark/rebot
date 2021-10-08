@@ -3,15 +3,16 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/go-chi/chi/v5/middleware"
 	"net/http"
 	"os"
 	"os/signal"
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"go.uber.org/zap"
 
+	"github.com/FlameInTheDark/rebot/app/api/config"
 	"github.com/FlameInTheDark/rebot/app/api/handlers"
 	"github.com/FlameInTheDark/rebot/foundation/database"
 	"github.com/FlameInTheDark/rebot/foundation/logs"
@@ -19,7 +20,7 @@ import (
 
 // RunAPIServer create and start rest api server
 func RunAPIServer(logger *zap.Logger) error {
-	conf, err := GetConfig()
+	conf, err := config.GetConfig()
 	if err != nil {
 		logger.Error("configuration not loaded", zap.Error(err))
 		return err
@@ -48,7 +49,7 @@ func RunAPIServer(logger *zap.Logger) error {
 		middleware.Recoverer,
 	)
 
-	handlers.API(r, handlers.WarmupServices(db), logger)
+	handlers.API(r, handlers.CreateServices(db), logger)
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)

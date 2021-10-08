@@ -1,8 +1,9 @@
 package handlers
 
 import (
-	"github.com/FlameInTheDark/rebot/business/service/users"
 	"github.com/jmoiron/sqlx"
+
+	"github.com/FlameInTheDark/rebot/business/service/users"
 )
 
 //Services contains business logic
@@ -10,8 +11,8 @@ type Services struct {
 	Users *users.Service
 }
 
-//WarmupServices creates services
-func WarmupServices(db *sqlx.DB) *Services {
+//CreateServices creates services
+func CreateServices(db *sqlx.DB) *Services {
 	var services Services
 
 	services.Users = users.NewUsersService(db)

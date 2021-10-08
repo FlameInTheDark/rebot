@@ -16,6 +16,7 @@ func NewUsersService(db *sqlx.DB) *Service {
 	}
 }
 
+//CreateUser creates new user in database with specified discord id
 func (s *Service) CreateUser(ctx context.Context, did string) error {
 	_, err := s.users.Create(ctx, did)
 	if err != nil {

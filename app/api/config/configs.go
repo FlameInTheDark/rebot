@@ -1,9 +1,12 @@
-package main
+package config
 
 import (
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/pkg/errors"
+	"sync"
 )
+
+var lock = &sync.Mutex{}
 
 type Config struct {
 	Http struct {
@@ -26,10 +29,21 @@ type Config struct {
 	}
 }
 
+var config *Config
+
+//GetConfig load config from ENVs or .env file. If config is already loaded, return it.
 func GetConfig() (*Config, error) {
-	var cfg Config
-	if err := cleanenv.ReadEnv(&cfg); err != nil {
-		return nil, errors.Wrap(err, "api: Read ENVs error")
+	if config == nil {
+		lock.Lock()
+		defer lock.Unlock()
+
+		if config == nil {
+			var cfg Config
+			if err := cleanenv.ReadEnv(&cfg); err != nil {
+				return nil, errors.Wrap(err, "api: Read ENVs error")
+			}
+			config = &cfg
+		}
 	}
-	return &cfg, nil
+	return config, nil
 }

@@ -5,14 +5,17 @@ go 1.16
 require (
 	github.com/BurntSushi/toml v0.4.1 // indirect
 	github.com/Netflix/go-env v0.0.0-20210215222557-e437a7e7f9fb
+	github.com/bwmarrin/discordgo v0.23.2 // indirect
 	github.com/go-chi/chi/v5 v5.0.3
 	github.com/go-chi/render v1.0.1
-	github.com/ilyakaznacheev/cleanenv v1.2.5 // indirect
+	github.com/google/uuid v1.3.0 // indirect
+	github.com/ilyakaznacheev/cleanenv v1.2.5
 	github.com/jmoiron/sqlx v1.3.4
 	github.com/joho/godotenv v1.3.0
 	github.com/lib/pq v1.10.2
 	github.com/pkg/errors v0.8.1
 	github.com/simukti/sqldb-logger v0.0.0-20201125162808-c35f87e285f2
+	github.com/stretchr/testify v1.7.0 // indirect
 	github.com/urfave/cli/v2 v2.3.0
 	go.uber.org/atomic v1.8.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
