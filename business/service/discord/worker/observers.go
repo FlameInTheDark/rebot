@@ -8,16 +8,24 @@ import (
 	"github.com/google/uuid"
 )
 
+type ObserverType string
+
+func (ot ObserverType) String() string {
+	return string(ot)
+}
+
 type Observer interface {
 	Notify(e *MessageEvent)
 	Ping() error
 	GetId() uuid.UUID
+	Type() ObserverType
 }
 
 type MessageEvent struct {
-	GuildID string
-	UserID  string
-	Message string
+	GuildID  string
+	UserID   string
+	Username string
+	Message  string
 }
 
 type EventObservers struct {
@@ -35,6 +43,15 @@ func (eo *EventObservers) Register(o Observer) {
 	}
 }
 
+func (eo *EventObservers) IsTypeExists(t ObserverType) bool {
+	for _, e := range eo.observers {
+		if e.Type() == t {
+			return true
+		}
+	}
+	return false
+}
+
 //Unregister remove observer
 func (eo *EventObservers) Unregister(id uuid.UUID) {
 	eo.rw.Lock()
@@ -50,11 +67,11 @@ func (eo *EventObservers) Unregister(id uuid.UUID) {
 //CheckHealth ping all observers and remove those who no longer respond
 func (eo *EventObservers) CheckHealth() {
 	wg := sync.WaitGroup{}
-	for i,_ := range eo.observers {
+	for i, _ := range eo.observers {
 		wg.Add(1)
 		go func(o Observer) {
 			if err := o.Ping(); err != nil {
-				eo.logger.Warn("observer no longer responds", zap.String("observer_id", o.GetId().String()))
+				eo.logger.Warn("observer no longer responds", zap.String("observer-id", o.GetId().String()))
 				eo.Unregister(o.GetId())
 			}
 			wg.Done()

@@ -8,13 +8,13 @@ import (
 	"github.com/go-chi/render"
 	"go.uber.org/zap"
 
-	berrors2 "github.com/FlameInTheDark/rebot/foundation/berrors"
+	"github.com/FlameInTheDark/rebot/foundation/berrors"
 	"github.com/FlameInTheDark/rebot/foundation/logs"
 )
 
 //RespondError renders error message into http server response
 func RespondError(w http.ResponseWriter, r *http.Request, err error) {
-	bError := &berrors2.BusinessError{}
+	bError := &berrors.BusinessError{}
 	logger := r.Context().Value(logs.LoggerKey).(*zap.Logger)
 
 	if errors.As(err, &bError) {

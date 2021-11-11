@@ -1,5 +1,5 @@
 # Build the Go Binary.
-FROM golang:1.16.1 as build_api
+FROM golang:1.16.1 as build_commander
 ENV CGO_ENABLED 0
 ARG VCS_REF
 
@@ -11,7 +11,7 @@ RUN mkdir -p /service
 WORKDIR /service
 COPY .. .
 
-WORKDIR /service/app/api
+WORKDIR /service/app/commander
 RUN go build -ldflags "-X main.build=${VCS_REF}"
 
 # Run the Go Binary in Alpine.
@@ -22,12 +22,12 @@ ARG VCS_REF
 # Installing curl to use healthchecks
 RUN apk add curl
 
-COPY --from=build_api /service/app/api/api /service/api
+COPY --from=build_commander /service/app/commander/commander /service/commander
 WORKDIR /service
-CMD ["./api"]
+CMD ["./commander"]
 
 LABEL org.opencontainers.image.created="${BUILD_DATE}" \
-org.opencontainers.image.title="rebot-api" \
+org.opencontainers.image.title="rebot-commander" \
 org.opencontainers.image.authors="" \
 org.opencontainers.image.source="https://github.com/FlameInTheDark/rebot" \
 org.opencontainers.image.revision="${VCS_REF}" \

@@ -2,16 +2,15 @@ package main
 
 import (
 	"fmt"
+	"github.com/FlameInTheDark/rebot/foundation/logs"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
-
-	"github.com/FlameInTheDark/rebot/foundation/logs"
 )
 
 func RunCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "run",
-		Usage: "start api server",
+		Usage: "start commander service",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:    "log",
@@ -34,7 +33,7 @@ func RunCommand() *cli.Command {
 			defer logger.Sync()
 
 			logger.Info("service is starting", zap.String("app-name", c.App.Name), zap.String("app-version", c.App.Version))
-			return RunAPIServer(logger)
+			return RunCommanderService(logger)
 		},
 	}
 }

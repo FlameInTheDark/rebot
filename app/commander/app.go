@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/go-chi/render"
+	"github.com/FlameInTheDark/rebot/foundation/redisdb"
 	"net/http"
 	"os"
 	"os/signal"
@@ -11,16 +11,18 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/render"
 	"go.uber.org/zap"
 
-	"github.com/FlameInTheDark/rebot/app/api/config"
-	"github.com/FlameInTheDark/rebot/app/api/handlers"
+	"github.com/FlameInTheDark/rebot/app/commander/config"
+	"github.com/FlameInTheDark/rebot/app/commander/service"
 	"github.com/FlameInTheDark/rebot/foundation/database"
+	"github.com/FlameInTheDark/rebot/foundation/discord"
 	"github.com/FlameInTheDark/rebot/foundation/logs"
+	"github.com/FlameInTheDark/rebot/foundation/queue"
 )
 
-// RunAPIServer create and start rest api server
-func RunAPIServer(logger *zap.Logger) error {
+func RunCommanderService(logger *zap.Logger) error {
 	conf, err := config.GetConfig()
 	if err != nil {
 		logger.Error("configuration not loaded", zap.Error(err))
@@ -36,7 +38,7 @@ func RunAPIServer(logger *zap.Logger) error {
 		Username:   conf.Database.Username,
 		Password:   conf.Database.Password,
 		DisableTLS: conf.Database.DisableTLS,
-		CertPath:   conf.Database.CetrPath,
+		CertPath:   conf.Database.CertPath,
 		Logger:     logs.NewDBLogger(logger),
 	}
 
@@ -46,14 +48,38 @@ func RunAPIServer(logger *zap.Logger) error {
 		return err
 	}
 
+	sess, err := discord.NewDiscordSession(conf.Discord.Token)
+	if err != nil {
+		logger.Error("discord connection error", zap.Error(err))
+		return err
+	}
+
+	rabbit, err := queue.NewRabbitmqConnection(fmt.Sprintf(
+		"amqp://%s:%s@%s:%s/",
+		conf.RabbitMQ.User,
+		conf.RabbitMQ.Password,
+		conf.RabbitMQ.Host,
+		conf.RabbitMQ.Port,
+	))
+
+	rc, err := redisdb.NewConnection(conf.Redis.Host, conf.Redis.Port, conf.Redis.Password, conf.Redis.Database)
+	if err != nil {
+		logger.Error("redis connection error", zap.Error(err))
+		return err
+	}
+
+	cmdr, err := service.NewCommander(db, rc, sess, rabbit, logger)
+	if err != nil {
+		logger.Error("worker creation error", zap.Error(err))
+		return err
+	}
+
+	// Health check router
 	r := chi.NewRouter()
 	r.Use(
 		logs.HttpLoggerMiddleware(logger),
 		middleware.Recoverer,
 	)
-
-	handlers.API(r, handlers.CreateServices(db), logger)
-
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		render.PlainText(w, r, "OK")
 	})
@@ -81,5 +107,6 @@ func RunAPIServer(logger *zap.Logger) error {
 			}
 		}
 	}()
+
 	return srv.ListenAndServe()
 }

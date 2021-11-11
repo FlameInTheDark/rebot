@@ -10,8 +10,8 @@ services:
     networks:
       shared-network:
     image: "rebot-api-amd64:latest"
-    command: ["api"]
-    entrypoint: ["./api"]
+    command: [ "run" ]
+    entrypoint: [ "./api" ]
     restart: always
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
@@ -28,6 +28,29 @@ services:
       options:
         loki-url: http://localhost:3100/loki/api/v1/push
         loki-external-labels: job=rebot/service/api,environment=development
+
+  rebot-commander:
+    container_name: rebot-commander
+    networks:
+      shared-network:
+    image: "rebot-commander-amd64:latest"
+    command: [ "run" ]
+    entrypoint: [ "./commander" ]
+    restart: always
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    depends_on:
+      - db
+      - mq
+      - consul
+    logging:
+      driver: loki
+      options:
+        loki-url: http://localhost:3100/loki/api/v1/push
+        loki-external-labels: job=rebot/service/commander,environment=development
 
   db:
     container_name: rebot-db
@@ -56,22 +79,25 @@ services:
       - db
     restart: on-failure:10
 
-  mq:
-    container_name: rebot-mq
+  redis:
+    image: redis:6.2.6-alpine
     networks:
       - shared-network
-    image: nats:2.3.2-alpine3.14
-    command: --js
-    restart: always
     ports:
-      - 4222:4222
+      - 6379:6379
     expose:
-      - 4222
-    logging:
-      driver: loki
-      options:
-        loki-url: http://localhost:3100/loki/api/v1/push
-        loki-external-labels: job=rebot/service/mq,environment=development
+      - 6379
+
+  mq:
+    container_name: rebot-mq
+    image: rabbitmq:3.9.7-management-alpine
+    networks:
+      - shared-network
+    expose:
+      - 5672
+    ports:
+      - 5672:5672
+      - 15672:15672
 
   loki:
     container_name: rebot-loki
@@ -120,7 +146,6 @@ services:
     networks:
       shared-network:
     image: quay.io/influxdb/influxdb:v2.0.3
-    entrypoint: influx setup --bucket mybucket -t mytoken -o myorg --username=myusername --password=passwordpasswordpassword --host=http://influxdb:8086 -f
     restart: on-failure:10
     depends_on:
       - influxdb

@@ -7,7 +7,8 @@ import (
 )
 
 type Guild struct {
-	ID        int32     `json:"id"`
-	DiscordID string    `json:"discord_id"`
-	CreatedAt time.Time `json:"created_at"`
+	ID            int32     `json:"id"`
+	DiscordID     string    `json:"discord_id"`
+	CommandPrefix string    `json:"command_prefix"`
+	CreatedAt     time.Time `json:"created_at"`
 }
