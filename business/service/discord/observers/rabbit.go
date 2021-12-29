@@ -9,21 +9,19 @@ import (
 )
 
 type RabbitCommandObserver struct {
-	id           uuid.UUID
-	event        string
-	observerType worker.ObserverType
-	cmdSender    commandst.CommandsSender
+	id        uuid.UUID
+	event     string
+	cmdSender commandst.CommandsSender
 
 	logger *zap.Logger
 }
 
-func NewRabbitCommandObserver(id uuid.UUID, event string, cmdSender commandst.CommandsSender, ot worker.ObserverType, logger *zap.Logger) *RabbitCommandObserver {
+func NewRabbitCommandObserver(id uuid.UUID, event string, cmdSender commandst.CommandsSender, logger *zap.Logger) *RabbitCommandObserver {
 	return &RabbitCommandObserver{
-		id:           id,
-		event:        event,
-		observerType: ot,
-		cmdSender:    cmdSender,
-		logger:       logger,
+		id:        id,
+		event:     event,
+		cmdSender: cmdSender,
+		logger:    logger,
 	}
 }
 
@@ -40,7 +38,6 @@ func (r *RabbitCommandObserver) Notify(e *worker.MessageEvent) {
 			"cannot send event message",
 			zap.Error(err),
 			zap.String("event-observer-id", r.id.String()),
-			zap.String("event-observer-type", r.observerType.String()),
 		)
 	}
 }
@@ -51,8 +48,4 @@ func (r *RabbitCommandObserver) Ping() error {
 
 func (r *RabbitCommandObserver) GetId() uuid.UUID {
 	return r.id
-}
-
-func (r *RabbitCommandObserver) Type() worker.ObserverType {
-	return r.observerType
 }

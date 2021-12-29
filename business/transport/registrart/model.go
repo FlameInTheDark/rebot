@@ -7,7 +7,8 @@ type RegistrarSender interface {
 }
 
 type RegistrarReceiver interface {
-	ReceiveRegisterRequests() (<-chan RegistrarMessage, error)
+	AddHandler(handler RegistrarHandler)
+	Start() error
 	Close()
 }
 
@@ -15,3 +16,5 @@ type RegistrarMessage struct {
 	ID      uuid.UUID `json:"guild_id"`
 	Command string    `json:"user_id"`
 }
+
+type RegistrarHandler func(id uuid.UUID, command string)

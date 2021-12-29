@@ -1,14 +1,11 @@
 package handlers
 
 import (
-	"net/http"
-
-	"github.com/go-chi/render"
+	"github.com/gofiber/fiber/v2"
 
 	"github.com/FlameInTheDark/rebot/app/api/handlers/requests"
-	"github.com/FlameInTheDark/rebot/business/service/auth"
-	"github.com/FlameInTheDark/rebot/foundation/berrors"
-	"github.com/FlameInTheDark/rebot/foundation/web"
+	"github.com/FlameInTheDark/rebot/app/api/handlers/responses"
+	"github.com/FlameInTheDark/rebot/foundation/validation"
 )
 
 type AuthHandlersGroup struct {
@@ -19,10 +16,17 @@ func NewAuthHandlersGroup() *AuthHandlersGroup {
 }
 
 //OAuthCallbackHandler accept discord oauth requests
-func (a *AuthHandlersGroup) OAuthCallbackHandler(w http.ResponseWriter, r *http.Request) {
+func (a *AuthHandlersGroup) OAuthCallbackHandler(c *fiber.Ctx) error {
 	var req requests.OauthCode
-	if err := render.Bind(r, &req); err != nil {
-		web.RespondError(w, r, berrors.WrapWithError(auth.ErrInvalidInput, err))
-		return
+	err := c.BodyParser(&req)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(responses.Error(err))
 	}
+
+	verr := validation.ValidateStruct(req)
+	if verr != nil {
+		return c.JSON(verr)
+	}
+
+	return c.Status(fiber.StatusOK).JSON(req)
 }

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/google/uuid"
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/pkg/errors"
 	"sync"
@@ -27,6 +28,26 @@ type Config struct {
 		Bucket string `env:"METRICS_BUCKET" env-default:"rebot"`
 		Token  string `env:"METRICS_TOKEN"`
 	}
+	Consul struct {
+		Address     string `env:"CONSUL_ADDR" env-default:"consul:8500"`
+		ServiceID   UUID   `env:"CONSUL_ID" env-default:""`
+		ServiceName string `env:"CONSUL_NAME" env-default:"api"`
+	}
+}
+
+type UUID string
+
+func (u *UUID) SetValue(s string) error {
+	if s != "" {
+		*u = UUID(s)
+		return nil
+	}
+	*u = UUID(uuid.NewString())
+	return nil
+}
+
+func (u UUID) String() string {
+	return string(u)
 }
 
 var config *Config

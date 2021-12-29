@@ -8,21 +8,22 @@ services:
   rebot-api:
     container_name: rebot-api
     networks:
-      shared-network:
+      - shared-network
     image: "rebot-api-amd64:latest"
     command: [ "run" ]
     entrypoint: [ "./api" ]
     restart: always
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/healthz" ]
       interval: 30s
       timeout: 20s
       retries: 3
     ports:
-      - 8080:8080
+      - "8080:8080"
     depends_on:
       - db
       - mq
+      - consul
     logging:
       driver: loki
       options:
@@ -32,13 +33,13 @@ services:
   rebot-commander:
     container_name: rebot-commander
     networks:
-      shared-network:
+      - shared-network
     image: "rebot-commander-amd64:latest"
     command: [ "run" ]
     entrypoint: [ "./commander" ]
     restart: always
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/healthz" ]
       interval: 30s
       timeout: 20s
       retries: 3
@@ -46,11 +47,36 @@ services:
       - db
       - mq
       - consul
+      - redis
     logging:
       driver: loki
       options:
         loki-url: http://localhost:3100/loki/api/v1/push
         loki-external-labels: job=rebot/service/commander,environment=development
+
+  rebot-weather:
+    container_name: rebot-weather
+    networks:
+      - shared-network
+    image: "rebot-weather-amd64:latest"
+    command: [ "run" ]
+    entrypoint: [ "./weather" ]
+    restart: always
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/healthz" ]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    depends_on:
+      - db
+      - mq
+      - consul
+      - redis
+    logging:
+      driver: loki
+      options:
+        loki-url: http://localhost:3100/loki/api/v1/push
+        loki-external-labels: job=rebot/service/weather,environment=development
 
   db:
     container_name: rebot-db
@@ -58,9 +84,7 @@ services:
       - shared-network
     image: postgres:13.3-alpine
     ports:
-      - 5433:5432
-    expose:
-      - 5433
+      - "5433:5432"
     logging:
       driver: loki
       options:
@@ -70,7 +94,7 @@ services:
   db-migrate:
     image: migrate/migrate:v4.14.1
     networks:
-      shared-network:
+      - shared-network
     volumes:
       - type: bind
         source: ${PWD}/migration
@@ -81,32 +105,39 @@ services:
 
   redis:
     image: redis:6.2.6-alpine
+    container_name: rebot-redis
     networks:
       - shared-network
     ports:
-      - 6379:6379
-    expose:
-      - 6379
+      - "6379:6379"
 
   mq:
     container_name: rebot-mq
     image: rabbitmq:3.9.7-management-alpine
     networks:
       - shared-network
-    expose:
-      - 5672
     ports:
-      - 5672:5672
-      - 15672:15672
+      - "5672:5672"
+      - "15672:15672"
+
+  consul:
+    container_name: rebot-consul
+    image: consul:1.11.1
+    networks:
+      - shared-network
+    ports:
+      - "8400:8400"
+      - "8500:8500"
+      - "8600:8600"
 
   loki:
     container_name: rebot-loki
     image: grafana/loki:2.0.0
+    networks:
+      - shared-network
     ports:
       - "3100:3100"
     command: -config.file=/etc/loki/local-config.yaml
-    networks:
-      - shared-network
 
   promtail:
     container_name: rebot-promtail
@@ -128,7 +159,7 @@ services:
   influxdb:
     container_name: rebot-influx
     networks:
-      shared-network:
+      - shared-network
     image: quay.io/influxdb/influxdb:v2.0.3
     volumes:
       - influxdbv2:/.influxdbv2
@@ -144,7 +175,7 @@ services:
     links:
       - influxdb
     networks:
-      shared-network:
+      - shared-network
     image: quay.io/influxdb/influxdb:v2.0.3
     restart: on-failure:10
     depends_on:

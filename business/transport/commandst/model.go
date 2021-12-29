@@ -2,21 +2,24 @@ package commandst
 
 type CommandsSender interface {
 	SendCommand(cmd CommandMessage, command string) error
-	Ping(command string) error
 }
 
 type CommandsReceiver interface {
 	ReceiveCommands(command string) (<-chan CommandMessage, error)
-	ReceivePings(command string) error
+	AddHandler(handler ReceiverHandler)
+	Start(command string) error
 	Close()
 }
 
 type CommandMessage struct {
-	GuildID  string `json:"guild_id"`
-	UserID   string `json:"user_id"`
-	Username string `json:"username"`
-	Message  string `json:"message"`
+	GuildID   string `json:"guild_id"`
+	ChannelID string `json:"channel_id"`
+	UserID    string `json:"user_id"`
+	Username  string `json:"username"`
+	Message   string `json:"message"`
 }
+
+type ReceiverHandler func(m CommandMessage)
 
 type PingStatus int
 

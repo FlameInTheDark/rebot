@@ -11,5 +11,8 @@ func NewDiscordSession(token string) (*discordgo.Session, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "discord session creation failed")
 	}
+
+	sess.Identify.Intents = discordgo.IntentsAll
+
 	return sess, nil
 }

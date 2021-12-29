@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/FlameInTheDark/rebot/foundation/logs"
+
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
+
+	"github.com/FlameInTheDark/rebot/foundation/logs"
 )
 
 func RunCommand() *cli.Command {

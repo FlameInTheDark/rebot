@@ -8,31 +8,47 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/FlameInTheDark/rebot/business/service/discord/worker"
+	"github.com/FlameInTheDark/rebot/business/service/discovery"
 	"github.com/FlameInTheDark/rebot/business/service/users"
 	"github.com/FlameInTheDark/rebot/business/transport/commandst"
+	"github.com/FlameInTheDark/rebot/foundation/consul"
 )
 
 type Commander struct {
-	Users    *users.Service
-	Discord  *worker.DiscordWorker
-	Commands commandst.CommandsSender
-	logger   *zap.Logger
+	Users     *users.Service
+	Discord   *worker.DiscordWorker
+	Registrar *RegistrarWorker
+	logger    *zap.Logger
 }
 
-func NewCommander(db *sqlx.DB, rc *redis.Client, sess *discordgo.Session, rabbit *amqp.Connection, logger *zap.Logger) (*Commander, error) {
+func NewCommander(db *sqlx.DB, rc *redis.Client, sess *discordgo.Session, cd *consul.ConsulDiscovery, rabbit *amqp.Connection, logger *zap.Logger) (*Commander, error) {
+	logger.Debug("Creating rabbit commands transport")
 	cmdService, err := commandst.NewRabbitCommandsTransport(rabbit, logger)
 	if err != nil {
 		return nil, err
 	}
 
+	logger.Debug("Creating discovery service")
+	cds := discovery.NewConsulDiscoveryService(cd, logger)
+
+	logger.Debug("Creating commander service")
 	return &Commander{
-		Users:    users.NewUsersService(db),
-		Discord:  worker.NewWorker(db, rc, sess, logger),
-		Commands: cmdService,
-		logger:   logger.With(zap.String("component", "discovery")),
+		Users:     users.NewUsersService(db),
+		Discord:   worker.NewWorker(db, rc, sess, cmdService, logger),
+		Registrar: NewRegistrarWorker(cds),
+		logger:    logger.With(zap.String("component", "consul")),
 	}, nil
 }
 
 func (c *Commander) Run() error {
+	c.Registrar.AddRegistrarHandler(func(s consul.Service) {
+		if cmd, ok := s.Meta["command_id"]; ok {
+			c.logger.Debug("Registering command handler", zap.String("service-id", s.ID.String()), zap.Reflect("service-meta", s.Meta))
+			c.Discord.AddCommandWorker(s.ID, cmd)
+		}
+	})
+
+	c.Registrar.Run("command")
 	c.Discord.OnMessageHandler()
+	return c.Discord.Open()
 }

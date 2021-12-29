@@ -1,9 +1,10 @@
 package main
 
 import (
-	"github.com/urfave/cli/v2"
 	"log"
 	"os"
+
+	"github.com/urfave/cli/v2"
 )
 
 var (
@@ -13,8 +14,8 @@ var (
 
 func main() {
 	app := &cli.App{
-		Name:  "api",
-		Usage: "run api service",
+		Name:    "api",
+		Usage:   "run api service",
 		Version: build,
 		Commands: []*cli.Command{
 			RunCommand(),

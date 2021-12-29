@@ -1,25 +1,22 @@
 package main
 
 import (
-	"context"
 	"fmt"
-	"github.com/FlameInTheDark/rebot/foundation/redisdb"
-	"net/http"
 	"os"
 	"os/signal"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/render"
+	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
 
 	"github.com/FlameInTheDark/rebot/app/commander/config"
 	"github.com/FlameInTheDark/rebot/app/commander/service"
+	"github.com/FlameInTheDark/rebot/foundation/consul"
 	"github.com/FlameInTheDark/rebot/foundation/database"
 	"github.com/FlameInTheDark/rebot/foundation/discord"
 	"github.com/FlameInTheDark/rebot/foundation/logs"
 	"github.com/FlameInTheDark/rebot/foundation/queue"
+	"github.com/FlameInTheDark/rebot/foundation/redisdb"
 )
 
 func RunCommanderService(logger *zap.Logger) error {
@@ -42,49 +39,112 @@ func RunCommanderService(logger *zap.Logger) error {
 		Logger:     logs.NewDBLogger(logger),
 	}
 
+	logger.Debug("Creating database connection")
 	db, err := database.NewConnection(dbConfig)
 	if err != nil {
 		logger.Error("database connection error", zap.Error(err))
 		return err
 	}
+	defer func() {
+		logger.Info("Closing database connection")
+		derr := db.Close()
+		if derr != nil {
+			logger.Error("Database connection close error", zap.Error(derr))
+		}
+	}()
 
+	logger.Debug("Creating Discord session")
 	sess, err := discord.NewDiscordSession(conf.Discord.Token)
 	if err != nil {
 		logger.Error("discord connection error", zap.Error(err))
 		return err
 	}
+	defer func() {
+		logger.Info("Closing discord session")
+		serr := sess.Close()
+		if serr != nil {
+			logger.Error("Discord session close error", zap.Error(serr))
+		}
+	}()
 
+	logger.Debug("Creating RabbitMQ connection")
 	rabbit, err := queue.NewRabbitmqConnection(fmt.Sprintf(
-		"amqp://%s:%s@%s:%s/",
+		"amqp://%s:%s@%s:%d/",
 		conf.RabbitMQ.User,
 		conf.RabbitMQ.Password,
 		conf.RabbitMQ.Host,
 		conf.RabbitMQ.Port,
 	))
+	if err != nil {
+		logger.Error("Rabbit connection error", zap.Error(err))
+		return err
+	}
+	defer func() {
+		logger.Info("Closing rabbit connection")
+		rerr := rabbit.Close()
+		if rerr != nil {
+			logger.Error("Rabbit connection close error", zap.Error(rerr))
+		}
+	}()
 
+	logger.Debug("Creating Redis connection")
 	rc, err := redisdb.NewConnection(conf.Redis.Host, conf.Redis.Port, conf.Redis.Password, conf.Redis.Database)
 	if err != nil {
 		logger.Error("redis connection error", zap.Error(err))
 		return err
 	}
+	defer func() {
+		logger.Info("Closing redis client")
+		rcerr := rc.Close()
+		if rcerr != nil {
+			logger.Error("Redis client close error", zap.Error(rcerr))
+		}
+	}()
 
-	cmdr, err := service.NewCommander(db, rc, sess, rabbit, logger)
+	logger.Debug("Creating Consul client")
+	cd, err := consul.NewConsulClient(conf.Consul.Address)
+	if err != nil {
+		logger.Error("Cannot create Consul client", zap.Error(err))
+		return err
+	}
+	defer func() {
+		cerr := cd.Close()
+		if cerr != nil {
+			logger.Error("Consul client close error", zap.Error(cerr))
+		}
+	}()
+
+	logger.Debug("Creating commander")
+	cmdr, err := service.NewCommander(db, rc, sess, cd, rabbit, logger)
 	if err != nil {
 		logger.Error("worker creation error", zap.Error(err))
 		return err
 	}
 
-	// Health check router
-	r := chi.NewRouter()
-	r.Use(
-		logs.HttpLoggerMiddleware(logger),
-		middleware.Recoverer,
-	)
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		render.PlainText(w, r, "OK")
+	logger.Debug("Running commander")
+	err = cmdr.Run()
+	if err != nil {
+		logger.Error("commander start error", zap.Error(err))
+		return err
+	}
+
+	app := fiber.New()
+	app.Get("/healthz", func(c *fiber.Ctx) error {
+		return c.Status(fiber.StatusOK).SendString(time.Now().String())
 	})
 
-	srv := &http.Server{Addr: fmt.Sprintf(":%d", conf.Http.Port), Handler: r}
+	logger.Debug("Registering service", zap.String("service-name", conf.Consul.ServiceName))
+	err = cd.Register(conf.Consul.ServiceID.String(), conf.Consul.ServiceName, conf.Http.Port, nil)
+	if err != nil {
+		logger.Error("Cannot register service in consul", zap.Error(err))
+		return err
+	}
+	defer func() {
+		err := cd.Deregister(conf.Consul.ServiceID.String())
+		if err != nil {
+			logger.Error("Cannot deregister service", zap.Error(err))
+		}
+	}()
 
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt)
@@ -92,21 +152,14 @@ func RunCommanderService(logger *zap.Logger) error {
 		for range ch {
 			logger.Info("Service shutting down..")
 
-			ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-			defer cancel()
-
-			err := srv.Shutdown(ctx)
-			if err != nil {
-				logger.Error("API server shutdown error", zap.Error(err))
-			}
-			select {
-			case <-time.After(21 * time.Second):
-				logger.Info("Not all connections done")
-			case <-ctx.Done():
-
+			logger.Info("Shutting down http endpoint")
+			aerr := app.Shutdown()
+			if aerr != nil {
+				logger.Error("API server shutdown error", zap.Error(aerr))
 			}
 		}
 	}()
 
-	return srv.ListenAndServe()
+	logger.Debug("Listening API")
+	return app.Listen(fmt.Sprintf(":%d", conf.Http.Port))
 }

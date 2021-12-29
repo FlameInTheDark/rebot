@@ -1,29 +1,28 @@
 package handlers
 
 import (
-	"net/http"
-
-	"github.com/go-chi/chi/v5"
+	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
+
+	"github.com/FlameInTheDark/rebot/app/api/handlers/responses"
 )
 
 //API register api routes
-func API(r chi.Router, services *Services, logger *zap.Logger) {
-	r.Route("/api/v1", func(r chi.Router) {
-		r.Route("/auth", func(r chi.Router) {
-			authGroup := NewAuthHandlersGroup()
-			r.Post("/callback", authGroup.OAuthCallbackHandler)
-		})
+func API(r fiber.Router, services *Services, logger *zap.Logger) {
+	authGroup := NewAuthHandlersGroup()
+	ag := r.Group("/auth")
+	ag.Post("/callback", authGroup.OAuthCallbackHandler)
 
-		r.Group(func(r chi.Router) {
+	usersGroup := NewUsersHandlersGroup(services.Users)
+	ug := r.Group("/users")
+	ug.Get("/:id", usersGroup.GetUserHandler)
 
-		})
-	})
-
-	r.Get("/test", func(w http.ResponseWriter, r *http.Request) {
-		err := services.Users.CreateUser(r.Context(), "160834320934764544")
+	r.Get("/test", func(c *fiber.Ctx) error {
+		err := services.Users.CreateUser(c.Context(), "160834320934764544")
 		if err != nil {
 			logger.Error("create user error", zap.Error(err))
+			return c.Status(fiber.StatusInternalServerError).JSON(responses.Error(err))
 		}
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "User has been created successfully"})
 	})
 }

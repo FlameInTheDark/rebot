@@ -14,6 +14,7 @@ services:
       - REDIS_PASSWORD=redispassword
       - REDIS_DATABASE=0
       - LOG_LEVEL=debug
+      - CONSUL_ADDR=consul
 
   rebot-commander:
     environment:
@@ -28,6 +29,29 @@ services:
       - REDIS_PASSWORD=redispassword
       - REDIS_DATABASE=0
       - LOG_LEVEL=debug
+      - CONSUL_ADDR=consul
+
+  rebot-weather:
+    environment:
+      - DISCORD_TOKEN=<discord_bot_token>
+      - DATABASE_HOST=db
+      - DATABASE_PORT=5432
+      - DATABASE_USERNAME=postgres
+      - DATABASE_PASSWORD=postgres
+      - DATABASE_DBNAME=postgres
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=redispassword
+      - REDIS_DATABASE=0
+      - RABBIT_USER=flame
+      - RABBIT_PASS=h42pr3
+      - LOG_LEVEL=debug
+      - CONSUL_ADDR=consul:8500
+      - LOCATION_GEONAMES_USERNAME=<geonames_org_username>
+      - OWM_API_KEY=<open_weather_map_api_key>
+      - WEATHER_FONT_FILE=lato.ttf
+      - WEATHER_ICONS_FILE=weathericons.ttf
+      - WEATHER_ICONS_BINDINGS_FILE=icons_binds.json
 
   db:
     environment:
@@ -40,6 +64,9 @@ services:
     environment:
       - RABBITMQ_DEFAULT_USER=rabbitmq
       - RABBITMQ_DEFAULT_PASS=rabbitpass
+
+  consul:
+    command: "agent -server"
 
   influxdb-cli:
     entrypoint: influx setup --bucket rebot_bucket -t rebot_tocken -o myorg --username=rebotuser --password=rebotpass --host=http://influxdb:8086 -f

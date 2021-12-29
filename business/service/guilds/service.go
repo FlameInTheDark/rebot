@@ -2,6 +2,7 @@ package guilds
 
 import (
 	"context"
+	"database/sql"
 	"github.com/FlameInTheDark/rebot/business/models/guildscache"
 	"github.com/FlameInTheDark/rebot/business/models/guildsdb"
 	"github.com/go-redis/redis/v8"
@@ -34,7 +35,14 @@ func (g *GuildsService) GetCommandPrefix(guildId string) (string, error) {
 	}
 	guild, err := g.guilds.Find(ctx, guildId)
 	if err != nil {
-		return "", err
+		if err == sql.ErrNoRows {
+			guild, err = g.guilds.Create(ctx, guildId)
+			if err != nil {
+				return "", err
+			}
+		} else {
+			return "", err
+		}
 	}
 	err = g.cache.SetCommandPrefix(ctx, guildId, guild.CommandPrefix)
 	if err != nil {

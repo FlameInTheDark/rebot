@@ -1,16 +1,18 @@
 package config
 
 import (
+	"sync"
+
+	"github.com/google/uuid"
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/pkg/errors"
-	"sync"
 )
 
 var lock = &sync.Mutex{}
 
 type Config struct {
 	Http struct {
-		Port string `env:"HTTP_PORT" env-default:"8080"`
+		Port int `env:"HTTP_PORT" env-default:"8080"`
 	}
 	Discord struct {
 		Token string `env:"DISCORD_TOKEN"`
@@ -42,6 +44,26 @@ type Config struct {
 		User     string `env:"RABBIT_USER" env-default:"rabbitmq"`
 		Password string `env:"RABBIT_PASS" env-default:"rabbitpass"`
 	}
+	Consul struct {
+		Address     string `env:"CONSUL_ADDR" env-default:"consul:8500"`
+		ServiceID   UUID   `env:"CONSUL_ID" env-default:""`
+		ServiceName string `env:"CONSUL_NAME" env-default:"commander"`
+	}
+}
+
+type UUID string
+
+func (u *UUID) SetValue(s string) error {
+	if s != "" {
+		*u = UUID(s)
+		return nil
+	}
+	*u = UUID(uuid.NewString())
+	return nil
+}
+
+func (u UUID) String() string {
+	return string(u)
 }
 
 var config *Config

@@ -1,20 +1,17 @@
 package main
 
 import (
-	"context"
 	"fmt"
-	"github.com/go-chi/render"
-	"net/http"
 	"os"
 	"os/signal"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
 
 	"github.com/FlameInTheDark/rebot/app/api/config"
 	"github.com/FlameInTheDark/rebot/app/api/handlers"
+	"github.com/FlameInTheDark/rebot/foundation/consul"
 	"github.com/FlameInTheDark/rebot/foundation/database"
 	"github.com/FlameInTheDark/rebot/foundation/logs"
 )
@@ -45,20 +42,46 @@ func RunAPIServer(logger *zap.Logger) error {
 		logger.Error("database connection error", zap.Error(err))
 		return err
 	}
+	defer func() {
+		dberr := db.Close()
+		if dberr != nil {
+			logger.Error("Database connection close error", zap.Error(dberr))
+		}
+	}()
 
-	r := chi.NewRouter()
-	r.Use(
-		logs.HttpLoggerMiddleware(logger),
-		middleware.Recoverer,
-	)
+	flog := logs.NewFiberLogger(logger)
 
-	handlers.API(r, handlers.CreateServices(db), logger)
-
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		render.PlainText(w, r, "OK")
+	app := fiber.New()
+	app.Get("/healthz", func(c *fiber.Ctx) error {
+		return c.Status(fiber.StatusOK).SendString(time.Now().String())
 	})
 
-	srv := &http.Server{Addr: fmt.Sprintf(":%d", conf.Http.Port), Handler: r}
+	v1 := app.Group("/api/v1", flog.Middleware())
+
+	handlers.API(v1, handlers.CreateServices(db), logger)
+
+	consul, err := consul.NewConsulClient(conf.Consul.Address)
+	if err != nil {
+		logger.Error("Cannot create Consul client", zap.Error(err))
+		return err
+	}
+	defer func() {
+		cerr := consul.Close()
+		if cerr != nil {
+			logger.Error("Consul client close error", zap.Error(cerr))
+		}
+	}()
+	err = consul.Register(conf.Consul.ServiceID.String(), conf.Consul.ServiceName, conf.Http.Port, nil)
+	if err != nil {
+		logger.Error("Cannot register service in consul", zap.Error(err))
+		return err
+	}
+	defer func() {
+		err := consul.Deregister(conf.Consul.ServiceID.String())
+		if err != nil {
+			logger.Error("Cannot deregister service", zap.Error(err))
+		}
+	}()
 
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt)
@@ -66,20 +89,11 @@ func RunAPIServer(logger *zap.Logger) error {
 		for range ch {
 			logger.Info("Service shutting down..")
 
-			ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-			defer cancel()
-
-			err := srv.Shutdown(ctx)
-			if err != nil {
-				logger.Error("API server shutdown error", zap.Error(err))
-			}
-			select {
-			case <-time.After(21 * time.Second):
-				logger.Info("Not all connections done")
-			case <-ctx.Done():
-
+			ferr := app.Shutdown()
+			if ferr != nil {
+				logger.Error("API server shutdown error", zap.Error(ferr))
 			}
 		}
 	}()
-	return srv.ListenAndServe()
+	return app.Listen(fmt.Sprintf(":%d", conf.Http.Port))
 }
