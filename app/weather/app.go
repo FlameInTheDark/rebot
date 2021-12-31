@@ -2,11 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/FlameInTheDark/rebot/app/weather/service"
-	"github.com/FlameInTheDark/rebot/business/transport/commandst"
-	"github.com/FlameInTheDark/rebot/foundation/geonames"
-	"github.com/FlameInTheDark/rebot/foundation/owm"
-	"github.com/FlameInTheDark/rebot/foundation/wgen"
 	"os"
 	"os/signal"
 	"time"
@@ -15,12 +10,17 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/FlameInTheDark/rebot/app/weather/config"
+	"github.com/FlameInTheDark/rebot/app/weather/service"
+	"github.com/FlameInTheDark/rebot/business/transport/commandst"
 	"github.com/FlameInTheDark/rebot/foundation/consul"
 	"github.com/FlameInTheDark/rebot/foundation/database"
 	"github.com/FlameInTheDark/rebot/foundation/discord"
+	"github.com/FlameInTheDark/rebot/foundation/geonames"
 	"github.com/FlameInTheDark/rebot/foundation/logs"
+	"github.com/FlameInTheDark/rebot/foundation/owm"
 	"github.com/FlameInTheDark/rebot/foundation/queue"
 	"github.com/FlameInTheDark/rebot/foundation/redisdb"
+	"github.com/FlameInTheDark/rebot/foundation/wgen"
 )
 
 func RunWeatherService(logger *zap.Logger) error {
@@ -117,7 +117,7 @@ func RunWeatherService(logger *zap.Logger) error {
 
 	location := geonames.NewClient(conf.Location.GeonamesUsername)
 
-	cmd := service.NewWeatherService(generator, forecast, location, rbc, sess, logger)
+	cmd := service.NewWeatherService(generator, forecast, location, rbc, sess, db, logger)
 
 	err = cmd.Run()
 	if err != nil {
@@ -143,8 +143,14 @@ func RunWeatherService(logger *zap.Logger) error {
 		return c.Status(fiber.StatusOK).SendString(time.Now().String())
 	})
 
+	meta, err := consul.MarshalCommandMeta(consul.CommandMetaInfo{{"w", "weather"}, {"ww", "wweather"}})
+	if err != nil {
+		logger.Error("Consul meta parsing error", zap.Error(err))
+		return err
+	}
+
 	logger.Debug("Registering service", zap.String("service-name", conf.Consul.ServiceName))
-	err = cd.Register(conf.Consul.ServiceID.String(), conf.Consul.ServiceName, conf.Http.Port, map[string]string{"command_id": "w"})
+	err = cd.Register(conf.Consul.ServiceID.String(), conf.Consul.ServiceName, conf.Http.Port, map[string]string{"command_data": meta})
 	if err != nil {
 		logger.Error("Cannot register service in consul", zap.Error(err))
 		return err

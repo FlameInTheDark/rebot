@@ -53,8 +53,14 @@ wait-db:
 	docker-compose -p ${PROJECT_NAME} -f zarf/compose/docker-compose.yaml -f zarf/compose/config-compose.yaml run wait -c rebot-db:5432
 
 create-migration: ## Create migration file in db/migrations directory. Migration should be named by "name" argument. Example: create-migration name=create_foos
-	docker run -v "${PWD}/migrations:/migrations" --network host migrate/migrate:$(GO_MIGRATE_VERSION) -path=/migrations \
- 		create -ext sql -dir /migrations $(name)
+	docker run -v "${PWD}/migration:/migration" --network host migrate/migrate:$(GO_MIGRATE_VERSION) -path=/migration \
+ 		create -ext sql -dir /migration $(name)
+
+models:
+	sqlc generate
+
+models-wsl:
+	wsl.exe sqlc generate
 
 tidy:
 	go mod tidy

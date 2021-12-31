@@ -42,9 +42,15 @@ func NewCommander(db *sqlx.DB, rc *redis.Client, sess *discordgo.Session, cd *co
 
 func (c *Commander) Run() error {
 	c.Registrar.AddRegistrarHandler(func(s consul.Service) {
-		if cmd, ok := s.Meta["command_id"]; ok {
+		if data, ok := s.Meta["command_data"]; ok {
 			c.logger.Debug("Registering command handler", zap.String("service-id", s.ID.String()), zap.Reflect("service-meta", s.Meta))
-			c.Discord.AddCommandWorker(s.ID, cmd)
+			meta, err := consul.ParseCommandMeta([]byte(data))
+			if err != nil {
+				return
+			}
+			for _, cmd := range *meta {
+				c.Discord.AddCommandWorker(cmd.Command, cmd.Queue)
+			}
 		}
 	})
 

@@ -13,3 +13,10 @@ packages:
     schema: "schema/guilds.sql"
     emit_json_tags: true
     emit_interface: true
+
+  - name: "weatherdb"
+    path: "business/models/weatherdb"
+    queries: "schema/weather.sql"
+    schema: "schema/weather.sql"
+    emit_json_tags: true
+    emit_interface: true

@@ -5,7 +5,6 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/go-redis/redis/v8"
-	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 
@@ -22,7 +21,13 @@ type DiscordWorker struct {
 }
 
 //NewWorker creates a new discord worker service
-func NewWorker(db *sqlx.DB, rc *redis.Client, session *discordgo.Session, cmdst commandst.CommandsSender, logger *zap.Logger) *DiscordWorker {
+func NewWorker(
+	db *sqlx.DB,
+	rc *redis.Client,
+	session *discordgo.Session,
+	cmdst commandst.CommandsSender,
+	logger *zap.Logger,
+) *DiscordWorker {
 	return &DiscordWorker{
 		events:        NewEventRegistrar(logger),
 		session:       session,
@@ -36,8 +41,8 @@ func (d *DiscordWorker) Open() error {
 	return d.session.Open()
 }
 
-func (d *DiscordWorker) AddCommandWorker(id uuid.UUID, command string) {
-	d.events.Register(command, NewRabbitCommandObserver(command, d.commandSender, d.logger))
+func (d *DiscordWorker) AddCommandWorker(command, queue string) {
+	d.events.Register(command, NewRabbitCommandObserver(queue, d.commandSender, d.logger))
 }
 
 //OnMessageHandler ...

@@ -18,20 +18,28 @@ type RabbitCommandsTransport struct {
 	channel *amqp.Channel
 
 	rw       sync.RWMutex
-	handlers []ReceiverHandler
+	handlers map[string]ReceiverHandler
 
 	logger *zap.Logger
 
 	close chan struct{}
 }
 
-func (t *RabbitCommandsTransport) AddHandler(handler ReceiverHandler) {
+func (t *RabbitCommandsTransport) AddHandler(command string, handler ReceiverHandler) {
 	t.rw.Lock()
-	t.handlers = append(t.handlers, handler)
-	t.rw.Unlock()
+	defer t.rw.Unlock()
+	if _, ok := t.handlers[command]; !ok {
+		t.handlers[command] = handler
+	}
 }
 
 func (t *RabbitCommandsTransport) Start(command string) error {
+	var th ReceiverHandler
+	if _, ok := t.handlers[command]; ok {
+		th = t.handlers[command]
+	} else {
+		return errors.New("no commands found")
+	}
 	q, err := t.getQueue(fmt.Sprintf("commandst.%s", command))
 	if err != nil {
 		return err
@@ -42,7 +50,7 @@ func (t *RabbitCommandsTransport) Start(command string) error {
 		return err
 	}
 
-	go func(msgs <-chan amqp.Delivery, close chan struct{}) {
+	go func(msgs <-chan amqp.Delivery, handler ReceiverHandler, close chan struct{}) {
 		for {
 			select {
 			case msg := <-msgs:
@@ -53,16 +61,12 @@ func (t *RabbitCommandsTransport) Start(command string) error {
 					continue
 				}
 				t.logger.Debug("Got message", zap.Reflect("rabbit-message", cmd))
-				t.rw.RLock()
-				for _, h := range t.handlers {
-					h(cmd)
-				}
-				t.rw.RUnlock()
+				handler(cmd)
 			case <-close:
 				return
 			}
 		}
-	}(msgs, t.close)
+	}(msgs, th, t.close)
 
 	t.logger.Debug("Started listening command channel", zap.String("rabbit-queue", fmt.Sprintf("commandst.%s", command)))
 
@@ -78,6 +82,7 @@ func NewRabbitCommandsTransport(conn *amqp.Connection, logger *zap.Logger) (*Rab
 
 	return &RabbitCommandsTransport{
 		conn:    conn,
+		handlers: make(map[string]ReceiverHandler),
 		channel: ch,
 		logger:  logger,
 		close:   make(chan struct{}),
@@ -92,12 +97,12 @@ func (t *RabbitCommandsTransport) getQueue(name string) (amqp.Queue, error) {
 	return t.channel.QueueDeclare(name, true, true, false, false, nil)
 }
 
-func (t *RabbitCommandsTransport) SendCommand(cmd CommandMessage, command string) error {
+func (t *RabbitCommandsTransport) SendCommand(cmd CommandMessage, queue string) error {
 	data, err := json.Marshal(&cmd)
 	if err != nil {
 		return err
 	}
-	q, err := t.getQueue(fmt.Sprintf("commandst.%s", command))
+	q, err := t.getQueue(fmt.Sprintf("commandst.%s", queue))
 	if err != nil {
 		return err
 	}

@@ -21,15 +21,15 @@ type MessageEvent struct {
 
 type RabbitCommandObserver struct {
 	id        uuid.UUID
-	event     string
+	queue     string
 	cmdSender commandst.CommandsSender
 
 	logger *zap.Logger
 }
 
-func NewRabbitCommandObserver(event string, cmdSender commandst.CommandsSender, logger *zap.Logger) *RabbitCommandObserver {
+func NewRabbitCommandObserver(queue string, cmdSender commandst.CommandsSender, logger *zap.Logger) *RabbitCommandObserver {
 	return &RabbitCommandObserver{
-		event:     event,
+		queue: queue,
 		cmdSender: cmdSender,
 		logger:    logger,
 	}
@@ -44,7 +44,7 @@ func (r *RabbitCommandObserver) Notify(e *MessageEvent) {
 		Username:  e.Username,
 		Message:   e.Message,
 	}
-	err := r.cmdSender.SendCommand(msg, r.event)
+	err := r.cmdSender.SendCommand(msg, r.queue)
 	if err != nil {
 		r.logger.Error(
 			"cannot send event message",

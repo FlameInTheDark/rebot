@@ -2,6 +2,10 @@ package weather
 
 import (
 	"bytes"
+	"context"
+	"github.com/FlameInTheDark/rebot/business/models/weatherdb"
+	"github.com/jmoiron/sqlx"
+	"time"
 
 	"go.uber.org/zap"
 
@@ -15,19 +19,34 @@ type Service struct {
 	geonames  *geonames.Client
 	owm       *owm.Client
 
+	wdb weatherdb.Querier
+
 	logger *zap.Logger
 }
 
-func NewService(generator *wgen.Generator, geo *geonames.Client, ow *owm.Client, logger *zap.Logger) *Service {
+func NewService(generator *wgen.Generator, geo *geonames.Client, ow *owm.Client, db *sqlx.DB, logger *zap.Logger) *Service {
 	return &Service{
 		generator: generator,
 		geonames:  geo,
 		owm:       ow,
-		logger: logger,
+		wdb:       weatherdb.New(db),
+		logger:    logger,
 	}
 }
 
-func (s *Service) GetWeather(location string) (*bytes.Buffer, error) {
+func (s *Service) GetWeather(userId, location string) (*bytes.Buffer, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
+	defer cancel()
+
+	var isOld bool
+	if location == "" {
+		var err error
+		location, err = s.wdb.Find(ctx, userId)
+		if err != nil {
+			return nil, err
+		}
+		isOld = true
+	}
 	loc, err := s.geonames.FindOneLocation(location)
 	if err != nil {
 		s.logger.Debug("Find location error", zap.Error(err))
@@ -48,5 +67,55 @@ func (s *Service) GetWeather(location string) (*bytes.Buffer, error) {
 		s.logger.Debug("Data convertation error", zap.Error(err))
 		return nil, err
 	}
+	if !isOld {
+		err = s.wdb.Insert(ctx, weatherdb.InsertParams{DiscordID: userId, Location: location})
+		if err != nil {
+			s.logger.Error("Cannot save weather location", zap.Error(err))
+		}
+	}
 	return s.generator.Generate(fd)
+}
+
+func (s *Service) GetWeatherDaily(userId, location string) (*bytes.Buffer, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
+	defer cancel()
+
+	var isOld bool
+	if location == "" {
+		var err error
+		location, err = s.wdb.Find(ctx, userId)
+		if err != nil {
+			return nil, err
+		}
+		isOld = true
+	}
+
+	loc, err := s.geonames.FindOneLocation(location)
+	if err != nil {
+		s.logger.Debug("Find location error", zap.Error(err))
+		return nil, err
+	}
+	lat, lng, err := loc.CoordinatesFloat64()
+	if err != nil {
+		s.logger.Debug("Getting coordinates error", zap.Error(err))
+		return nil, err
+	}
+	forecast, err := s.owm.GetForecast(lat, lng, owm.ExcludeHourly+","+owm.ExcludeMinutely)
+	if err != nil {
+		s.logger.Debug("Getting forecast error", zap.Error(err))
+		return nil, err
+	}
+	fd, err := convertDaily(forecast, loc.CountryName+", "+loc.Name)
+	if err != nil {
+		s.logger.Debug("Data convertation error", zap.Error(err))
+		return nil, err
+	}
+
+	if !isOld {
+		err = s.wdb.Insert(ctx, weatherdb.InsertParams{DiscordID: userId, Location: location})
+		if err != nil {
+			s.logger.Error("Cannot save weather location", zap.Error(err))
+		}
+	}
+	return s.generator.GenerateDaily(fd)
 }

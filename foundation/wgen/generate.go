@@ -3,11 +3,12 @@ package wgen
 import (
 	"bytes"
 	"fmt"
+	"image/png"
+	"time"
+
 	"github.com/fogleman/gg"
 	"github.com/pkg/errors"
 	"golang.org/x/image/font"
-	"image/png"
-	"time"
 )
 
 // Generator is a weather picture generator
@@ -15,11 +16,9 @@ type Generator struct {
 	iconsFile string
 	fontFile  string
 
-	iconsCache map[float64]font.Face
-	fontCache  map[float64]font.Face
+	iconsCache map[string]font.Face
+	fontCache  map[string]font.Face
 	bindings   *UnicodeBindings
-
-	dc *gg.Context
 }
 
 type ForecastData struct {
@@ -45,229 +44,329 @@ func NewGenerator(fontPath, iconsPath, bindings string) (*Generator, error) {
 		iconsFile:  iconsPath,
 		fontFile:   fontPath,
 		bindings:   binds,
-		fontCache:  make(map[float64]font.Face),
-		iconsCache: make(map[float64]font.Face),
+		fontCache:  make(map[string]font.Face),
+		iconsCache: make(map[string]font.Face),
 	}, nil
 }
 
-func (g *Generator) loadFont(points float64) error {
-	if _, ok := g.fontCache[points]; !ok {
+func (g *Generator) loadFont(dc *gg.Context, points float64) error {
+	if _, ok := g.fontCache[fmt.Sprintf("%f", points)]; !ok {
 		ff, err := gg.LoadFontFace(g.fontFile, points)
 		if err != nil {
 			return err
 		}
-		g.fontCache[points] = ff
+		g.fontCache[fmt.Sprintf("%f", points)] = ff
 	}
-	g.dc.SetFontFace(g.fontCache[points])
+	dc.SetFontFace(g.fontCache[fmt.Sprintf("%f", points)])
 	return nil
 }
 
-func (g *Generator) loadIcons(points float64) error {
-	if _, ok := g.iconsCache[points]; !ok {
+func (g *Generator) loadIcons(dc *gg.Context, points float64) error {
+	if _, ok := g.iconsCache[fmt.Sprintf("%f", points)]; !ok {
 		ff, err := gg.LoadFontFace(g.iconsFile, points)
 		if err != nil {
 			return err
 		}
-		g.iconsCache[points] = ff
+		g.iconsCache[fmt.Sprintf("%f", points)] = ff
 	}
-	g.dc.SetFontFace(g.iconsCache[points])
+	dc.SetFontFace(g.iconsCache[fmt.Sprintf("%f", points)])
 	return nil
 }
 
 func (g *Generator) Generate(data *ForecastData) (*bytes.Buffer, error) {
-	g.dc = gg.NewContext(400, 650)
+	dc := gg.NewContext(400, 650)
 	defer func() {
-		g.dc.Clear()
-		g.dc = nil
+		dc.Clear()
+		dc = nil
 	}()
 
-	g.prepareImage()
-	g.drawWeatherLines()
-	err := g.drawHeader(data.Location, data.Forecast[0])
+	g.prepareImage(dc)
+	g.drawWeatherLines(dc)
+	err := g.drawHeader(dc, data.Location, data.Forecast[0])
 	if err != nil {
 		return nil, err
 	}
-	err = g.drawTime(data.Forecast[1:])
+	err = g.drawTime(dc, data.Forecast[1:])
 	if err != nil {
 		return nil, err
 	}
-	err = g.drawClouds(data.Forecast[1:])
+	err = g.drawClouds(dc, data.Forecast[1:])
 	if err != nil {
 		return nil, err
 	}
-	err = g.drawHumidity(data.Forecast[1:])
+	err = g.drawHumidity(dc, data.Forecast[1:])
 	if err != nil {
 		return nil, err
 	}
-	err = g.drawWeather(data.Forecast[1:])
+	err = g.drawWeather(dc, data.Forecast[1:])
 	if err != nil {
 		return nil, err
 	}
-	err = g.drawIcons(data.Forecast[1:])
+	err = g.drawIcons(dc, data.Forecast[1:])
 	if err != nil {
 		return nil, err
 	}
 
 	buf := new(bytes.Buffer)
-	err = png.Encode(buf, g.dc.Image())
+	err = png.Encode(buf, dc.Image())
 	if err != nil {
 		return nil, err
 	}
 	return buf, nil
 }
 
-func (g *Generator) prepareImage() {
-	if g.dc == nil {
+func (g *Generator) prepareImage(dc *gg.Context) {
+	if dc == nil {
 		return
 	}
-	g.dc.SetRGBA(0, 0, 0, 0)
-	g.dc.Clear()
+	dc.SetRGBA(0, 0, 0, 0)
+	dc.Clear()
 
 	// Template
-	g.dc.SetRGB255(242, 97, 73)
-	g.dc.DrawRoundedRectangle(0, 0, 400, 650, 10)
-	g.dc.Fill()
+	dc.SetRGB255(242, 97, 73)
+	dc.DrawRoundedRectangle(0, 0, 400, 650, 10)
+	dc.Fill()
 }
 
-func (g *Generator) drawWeatherLines() {
-	g.dc.SetRGB255(234, 89, 65)
-	g.dc.DrawRectangle(0, 250, 400, 100)
-	g.dc.DrawRectangle(0, 450, 400, 100)
-	g.dc.Fill()
+func (g *Generator) drawWeatherLines(dc *gg.Context) {
+	dc.SetRGB255(234, 89, 65)
+	dc.DrawRectangle(0, 250, 400, 100)
+	dc.DrawRectangle(0, 450, 400, 100)
+	dc.Fill()
 
-	g.dc.SetLineWidth(2)
-	g.dc.SetRGBA(0, 0, 0, 0.05)
-	g.dc.DrawLine(0, 250, 400, 250)
-	g.dc.DrawLine(0, 349, 400, 348)
-	g.dc.DrawLine(0, 450, 400, 450)
-	g.dc.DrawLine(0, 549, 400, 548)
-	g.dc.Stroke()
+	dc.SetLineWidth(2)
+	dc.SetRGBA(0, 0, 0, 0.05)
+	dc.DrawLine(0, 250, 400, 250)
+	dc.DrawLine(0, 349, 400, 348)
+	dc.DrawLine(0, 450, 400, 450)
+	dc.DrawLine(0, 549, 400, 548)
+	dc.Stroke()
 }
 
-func (g *Generator) drawHeader(location string, forecast ForecastRow) error {
+func (g *Generator) drawHeader(dc *gg.Context, location string, forecast ForecastRow) error {
 	// Header (place and date)
-	err := g.loadFont(20)
+	err := g.loadFont(dc, 20)
 	if err != nil {
 		return err
 	}
 
-	g.dc.SetRGBA(1, 1, 1, 0.7)
-	g.dc.DrawStringAnchored(location, 10, 15, 0, 0.5)
-	g.dc.SetRGBA(1, 1, 1, 0.4)
-	g.dc.DrawStringAnchored(time.Now().Format("Jan 2, 2006"), 270, 15, 0, 0.5)
+	dc.SetRGBA(1, 1, 1, 0.7)
+	dc.DrawStringAnchored(location, 10, 15, 0, 0.5)
+	dc.SetRGBA(1, 1, 1, 0.4)
+	dc.DrawStringAnchored(time.Now().Format("Jan 2, 2006"), 270, 15, 0, 0.5)
 
 	// First weather data
-	g.dc.SetRGBA(1, 1, 1, 0.5)
-	err = g.loadFont(30)
+	dc.SetRGBA(1, 1, 1, 0.5)
+	err = g.loadFont(dc, 30)
 	if err != nil {
 		return err
 	}
 
-	g.dc.DrawStringAnchored(fmt.Sprintf("%.2d:00", forecast.Time.Hour()), 50, 200, 0.5, 0.5)
-	g.dc.DrawStringAnchored(fmt.Sprintf("H:%d%%", forecast.Humidity), 200, 200, 0.5, 0.5)
-	g.dc.DrawStringAnchored(fmt.Sprintf("C:%d%%", forecast.Clouds), 350, 200, 0.5, 0.5)
+	dc.DrawStringAnchored(fmt.Sprintf("%.2d:00", forecast.Time.Hour()), 50, 200, 0.5, 0.5)
+	dc.DrawStringAnchored(fmt.Sprintf("H:%d%%", forecast.Humidity), 200, 200, 0.5, 0.5)
+	dc.DrawStringAnchored(fmt.Sprintf("C:%d%%", forecast.Clouds), 350, 200, 0.5, 0.5)
 
-	g.dc.SetRGBA(1, 1, 1, 1)
-	err = g.loadFont(90)
+	dc.SetRGBA(1, 1, 1, 1)
+	err = g.loadFont(dc, 90)
 	if err != nil {
 		return err
 	}
 
-	g.dc.DrawStringAnchored(fmt.Sprintf("%d°", int(forecast.Temperature)), 100, 120, 0.5, 0.5)
+	dc.DrawStringAnchored(fmt.Sprintf("%d°", int(forecast.Temperature)), 100, 120, 0.5, 0.5)
 
-	err = g.loadIcons(70)
+	err = g.loadIcons(dc, 70)
 	if err != nil {
 		return err
 	}
 
-	g.dc.DrawStringAnchored(g.bindings.Get(forecast.IconCode), 250, 120, 0, 0.7)
+	dc.DrawStringAnchored(g.bindings.Get(forecast.IconCode), 250, 120, 0, 0.7)
 	return nil
 }
 
-func (g *Generator) drawTime(data []ForecastRow) error {
+func (g *Generator) drawHeaderDaily(dc *gg.Context, location string, forecast ForecastRow) error {
+	// Header (place and date)
+	err := g.loadFont(dc, 20)
+	if err != nil {
+		return err
+	}
+
+	dc.SetRGBA(1, 1, 1, 0.7)
+	dc.DrawStringAnchored(location, 10, 15, 0, 0.5)
+	dc.SetRGBA(1, 1, 1, 0.4)
+	dc.DrawStringAnchored(time.Now().Format("Jan 2, 2006"), 270, 15, 0, 0.5)
+
+	// First weather data
+	dc.SetRGBA(1, 1, 1, 0.5)
+	err = g.loadFont(dc, 30)
+	if err != nil {
+		return err
+	}
+
+	dc.DrawStringAnchored(fmt.Sprintf("%s", forecast.Time.Weekday()), 80, 200, 0.5, 0.5)
+	dc.DrawStringAnchored(fmt.Sprintf("H:%d%%", forecast.Humidity), 200, 200, 0.5, 0.5)
+	dc.DrawStringAnchored(fmt.Sprintf("C:%d%%", forecast.Clouds), 350, 200, 0.5, 0.5)
+
+	dc.SetRGBA(1, 1, 1, 1)
+	err = g.loadFont(dc, 90)
+	if err != nil {
+		return err
+	}
+
+	dc.DrawStringAnchored(fmt.Sprintf("%d°", int(forecast.Temperature)), 100, 120, 0.5, 0.5)
+
+	err = g.loadIcons(dc, 70)
+	if err != nil {
+		return err
+	}
+
+	dc.DrawStringAnchored(g.bindings.Get(forecast.IconCode), 250, 120, 0, 0.7)
+	return nil
+}
+
+func (g *Generator) drawTime(dc *gg.Context, data []ForecastRow) error {
 	if len(data) < 4 {
 		return errors.New("not enough data")
 	}
-	err := g.loadFont(30)
+	err := g.loadFont(dc, 30)
 	if err != nil {
 		return err
 	}
 
 	// Time
-	g.dc.DrawStringAnchored(fmt.Sprintf("%.2v:00", data[0].Time.Hour()), 100, 285, 0, 0.5)
-	g.dc.DrawStringAnchored(fmt.Sprintf("%.2v:00", data[1].Time.Hour()), 100, 385, 0, 0.5)
-	g.dc.DrawStringAnchored(fmt.Sprintf("%.2v:00", data[2].Time.Hour()), 100, 485, 0, 0.5)
-	g.dc.DrawStringAnchored(fmt.Sprintf("%.2v:00", data[3].Time.Hour()), 100, 585, 0, 0.5)
+	dc.DrawStringAnchored(fmt.Sprintf("%.2v:00", data[0].Time.Hour()), 100, 285, 0, 0.5)
+	dc.DrawStringAnchored(fmt.Sprintf("%.2v:00", data[1].Time.Hour()), 100, 385, 0, 0.5)
+	dc.DrawStringAnchored(fmt.Sprintf("%.2v:00", data[2].Time.Hour()), 100, 485, 0, 0.5)
+	dc.DrawStringAnchored(fmt.Sprintf("%.2v:00", data[3].Time.Hour()), 100, 585, 0, 0.5)
 
 	return nil
 }
 
-func (g *Generator) drawHumidity(data []ForecastRow) error {
+func (g *Generator) drawDays(dc *gg.Context, data []ForecastRow) error {
 	if len(data) < 4 {
 		return errors.New("not enough data")
 	}
-	err := g.loadFont(20)
+	err := g.loadFont(dc, 30)
 	if err != nil {
 		return err
 	}
 
-	g.dc.SetRGBA(1, 1, 1, 0.5)
+	// Days
+	dc.DrawStringAnchored(fmt.Sprintf("%s", data[0].Time.Weekday()), 100, 285, 0, 0.5)
+	dc.DrawStringAnchored(fmt.Sprintf("%s", data[1].Time.Weekday()), 100, 385, 0, 0.5)
+	dc.DrawStringAnchored(fmt.Sprintf("%s", data[2].Time.Weekday()), 100, 485, 0, 0.5)
+	dc.DrawStringAnchored(fmt.Sprintf("%s", data[3].Time.Weekday()), 100, 585, 0, 0.5)
 
-	g.dc.DrawStringAnchored(fmt.Sprintf("H:%d%%", data[0].Humidity), 100, 315, 0, 0.5)
-	g.dc.DrawStringAnchored(fmt.Sprintf("H:%d%%", data[1].Humidity), 100, 415, 0, 0.5)
-	g.dc.DrawStringAnchored(fmt.Sprintf("H:%d%%", data[2].Humidity), 100, 515, 0, 0.5)
-	g.dc.DrawStringAnchored(fmt.Sprintf("H:%d%%", data[3].Humidity), 100, 615, 0, 0.5)
 	return nil
 }
 
-func (g *Generator) drawClouds(data []ForecastRow) error {
+func (g *Generator) drawHumidity(dc *gg.Context, data []ForecastRow) error {
 	if len(data) < 4 {
 		return errors.New("not enough data")
 	}
-	err := g.loadFont(20)
+	err := g.loadFont(dc, 20)
 	if err != nil {
 		return err
 	}
 
-	g.dc.SetRGBA(1, 1, 1, 0.5)
+	dc.SetRGBA(1, 1, 1, 0.5)
 
-	g.dc.DrawStringAnchored(fmt.Sprintf("C:%d%%", data[0].Clouds), 170, 315, 0, 0.5)
-	g.dc.DrawStringAnchored(fmt.Sprintf("C:%d%%", data[1].Clouds), 170, 415, 0, 0.5)
-	g.dc.DrawStringAnchored(fmt.Sprintf("C:%d%%", data[2].Clouds), 170, 515, 0, 0.5)
-	g.dc.DrawStringAnchored(fmt.Sprintf("C:%d%%", data[3].Clouds), 170, 615, 0, 0.5)
-
+	dc.DrawStringAnchored(fmt.Sprintf("H:%d%%", data[0].Humidity), 100, 315, 0, 0.5)
+	dc.DrawStringAnchored(fmt.Sprintf("H:%d%%", data[1].Humidity), 100, 415, 0, 0.5)
+	dc.DrawStringAnchored(fmt.Sprintf("H:%d%%", data[2].Humidity), 100, 515, 0, 0.5)
+	dc.DrawStringAnchored(fmt.Sprintf("H:%d%%", data[3].Humidity), 100, 615, 0, 0.5)
 	return nil
 }
 
-func (g *Generator) drawWeather(data []ForecastRow) error {
+func (g *Generator) drawClouds(dc *gg.Context, data []ForecastRow) error {
 	if len(data) < 4 {
 		return errors.New("not enough data")
 	}
-	err := g.loadFont(50)
+	err := g.loadFont(dc, 20)
 	if err != nil {
 		return err
 	}
 
-	g.dc.SetRGBA(1, 1, 1, 1)
+	dc.SetRGBA(1, 1, 1, 0.5)
 
-	g.dc.DrawStringAnchored(fmt.Sprintf("%d°", int(data[0].Temperature)), 320, 300, 0.5, 0.5)
-	g.dc.DrawStringAnchored(fmt.Sprintf("%d°", int(data[1].Temperature)), 320, 400, 0.5, 0.5)
-	g.dc.DrawStringAnchored(fmt.Sprintf("%d°", int(data[2].Temperature)), 320, 500, 0.5, 0.5)
-	g.dc.DrawStringAnchored(fmt.Sprintf("%d°", int(data[3].Temperature)), 320, 600, 0.5, 0.5)
+	dc.DrawStringAnchored(fmt.Sprintf("C:%d%%", data[0].Clouds), 170, 315, 0, 0.5)
+	dc.DrawStringAnchored(fmt.Sprintf("C:%d%%", data[1].Clouds), 170, 415, 0, 0.5)
+	dc.DrawStringAnchored(fmt.Sprintf("C:%d%%", data[2].Clouds), 170, 515, 0, 0.5)
+	dc.DrawStringAnchored(fmt.Sprintf("C:%d%%", data[3].Clouds), 170, 615, 0, 0.5)
+
 	return nil
 }
 
-func (g *Generator) drawIcons(data []ForecastRow) error {
-	err := g.loadIcons(50)
+func (g *Generator) drawWeather(dc *gg.Context, data []ForecastRow) error {
+	if len(data) < 4 {
+		return errors.New("not enough data")
+	}
+	err := g.loadFont(dc, 50)
 	if err != nil {
 		return err
 	}
 
-	g.dc.SetRGBA(1, 1, 1, 1)
+	dc.SetRGBA(1, 1, 1, 1)
 
-	g.dc.DrawStringAnchored(g.bindings.Get(data[0].IconCode), 20, 280, 0, 0.7)
-	g.dc.DrawStringAnchored(g.bindings.Get(data[1].IconCode), 20, 380, 0, 0.7)
-	g.dc.DrawStringAnchored(g.bindings.Get(data[2].IconCode), 20, 480, 0, 0.7)
-	g.dc.DrawStringAnchored(g.bindings.Get(data[3].IconCode), 20, 580, 0, 0.7)
+	dc.DrawStringAnchored(fmt.Sprintf("%d°", int(data[0].Temperature)), 320, 300, 0.5, 0.5)
+	dc.DrawStringAnchored(fmt.Sprintf("%d°", int(data[1].Temperature)), 320, 400, 0.5, 0.5)
+	dc.DrawStringAnchored(fmt.Sprintf("%d°", int(data[2].Temperature)), 320, 500, 0.5, 0.5)
+	dc.DrawStringAnchored(fmt.Sprintf("%d°", int(data[3].Temperature)), 320, 600, 0.5, 0.5)
 	return nil
+}
+
+func (g *Generator) drawIcons(dc *gg.Context, data []ForecastRow) error {
+	err := g.loadIcons(dc, 50)
+	if err != nil {
+		return err
+	}
+
+	dc.SetRGBA(1, 1, 1, 1)
+
+	dc.DrawStringAnchored(g.bindings.Get(data[0].IconCode), 20, 280, 0, 0.7)
+	dc.DrawStringAnchored(g.bindings.Get(data[1].IconCode), 20, 380, 0, 0.7)
+	dc.DrawStringAnchored(g.bindings.Get(data[2].IconCode), 20, 480, 0, 0.7)
+	dc.DrawStringAnchored(g.bindings.Get(data[3].IconCode), 20, 580, 0, 0.7)
+	return nil
+}
+
+func (g *Generator) GenerateDaily(data *ForecastData) (*bytes.Buffer, error) {
+	dc := gg.NewContext(400, 650)
+	defer func() {
+		dc.Clear()
+		dc = nil
+	}()
+
+	g.prepareImage(dc)
+	g.drawWeatherLines(dc)
+	err := g.drawHeaderDaily(dc, data.Location, data.Forecast[0])
+	if err != nil {
+		return nil, err
+	}
+	err = g.drawDays(dc, data.Forecast[1:])
+	if err != nil {
+		return nil, err
+	}
+	err = g.drawClouds(dc, data.Forecast[1:])
+	if err != nil {
+		return nil, err
+	}
+	err = g.drawHumidity(dc, data.Forecast[1:])
+	if err != nil {
+		return nil, err
+	}
+	err = g.drawWeather(dc, data.Forecast[1:])
+	if err != nil {
+		return nil, err
+	}
+	err = g.drawIcons(dc, data.Forecast[1:])
+	if err != nil {
+		return nil, err
+	}
+
+	buf := new(bytes.Buffer)
+	err = png.Encode(buf, dc.Image())
+	if err != nil {
+		return nil, err
+	}
+	return buf, nil
 }

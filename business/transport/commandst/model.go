@@ -1,12 +1,12 @@
 package commandst
 
 type CommandsSender interface {
-	SendCommand(cmd CommandMessage, command string) error
+	SendCommand(cmd CommandMessage, queue string) error
 }
 
 type CommandsReceiver interface {
 	ReceiveCommands(command string) (<-chan CommandMessage, error)
-	AddHandler(handler ReceiverHandler)
+	AddHandler(command string, handler ReceiverHandler)
 	Start(command string) error
 	Close()
 }
