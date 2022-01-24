@@ -32,11 +32,11 @@ type Config struct {
 		Password string `env:"REDIS_PASSWORD" env-default:"redispassword"`
 		Database int    `env:"REDIS_DATABASE" env-default:"0"`
 	}
-	Metrics struct {
-		Host   string `env:"METRICS_HOST" env-default:"influxdb"`
-		Port   int    `env:"METRICS_PORT" env-default:"8086"`
-		Bucket string `env:"METRICS_BUCKET" env-default:"rebot"`
-		Token  string `env:"METRICS_TOKEN"`
+	Influx struct {
+		Host   string `env:"INFLUX_HOST" env-default:"influxdb:8086"`
+		Token  string `env:"INFLUX_TOKEN" env-required:""`
+		Org    string `env:"INFLUX_ORG" env-required:""`
+		Bucket string `env:"INFLUX_BUCKET" env-required:""`
 	}
 	RabbitMQ struct {
 		Host     string `env:"RABBIT_HOST" env-default:"mq"`
@@ -66,7 +66,11 @@ type UUID string
 
 func (u *UUID) SetValue(s string) error {
 	if s != "" {
-		*u = UUID(s)
+		id, err := uuid.Parse(s)
+		if err != nil {
+			return err
+		}
+		*u = UUID(id.String())
 		return nil
 	}
 	*u = UUID(uuid.NewString())

@@ -1,6 +1,7 @@
 package owm
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/pkg/errors"
@@ -35,8 +36,9 @@ func NewClient(apiKey string, units string, language string) *Client {
 }
 
 // GetForecast requests Forecast from OpenWeatherMap API
-func (c *Client) GetForecast(lat, lng float64, exclude string) (*Forecast, error) {
-	resp, err := http.Get(fmt.Sprintf(
+func (c *Client) GetForecast(ctx context.Context, lat, lng float64, exclude string) (*Forecast, error) {
+	client := http.DefaultClient
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf(
 		"%s?lat=%f&lon=%f&exclude=%s&lang=%s&units=%s&appid=%s",
 		EndpointOneCall,
 		lat,
@@ -44,8 +46,12 @@ func (c *Client) GetForecast(lat, lng float64, exclude string) (*Forecast, error
 		exclude,
 		c.language,
 		c.units,
-		c.apiKey,
-	))
+		c.apiKey), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := client.Do(req.WithContext(ctx))
 	if err != nil {
 		return nil, err
 	}
@@ -69,8 +75,17 @@ func (c *Client) GetForecast(lat, lng float64, exclude string) (*Forecast, error
 }
 
 //GetHourlyForecast get hourly weather from the OpenWeatherMap service
-func (c *Client) GetHourlyForecast(lat, lng float64) ([]HourlyForecast, error) {
-	data, err := c.GetForecast(lat, lng, ExcludeMinutely+","+ExcludeDaily)
+func (c *Client) GetHourlyForecast(ctx context.Context, lat, lng float64) ([]HourlyForecast, error) {
+	data, err := c.GetForecast(ctx, lat, lng, ExcludeMinutely+","+ExcludeDaily)
+	if err != nil {
+		return nil, err
+	}
+	return data.Hourly, nil
+}
+
+//GetDailyForecast get daily weather from the OpenWeatherMap service
+func (c *Client) GetDailyForecast(ctx context.Context, lat, lng float64) ([]HourlyForecast, error) {
+	data, err := c.GetForecast(ctx, lat, lng, ExcludeMinutely+","+ExcludeHourly)
 	if err != nil {
 		return nil, err
 	}

@@ -60,24 +60,24 @@ func RunAPIServer(logger *zap.Logger) error {
 
 	handlers.API(v1, handlers.CreateServices(db), logger)
 
-	consul, err := consul.NewConsulClient(conf.Consul.Address)
+	cd, err := consul.NewConsulClient(conf.Consul.Address)
 	if err != nil {
 		logger.Error("Cannot create Consul client", zap.Error(err))
 		return err
 	}
 	defer func() {
-		cerr := consul.Close()
+		cerr := cd.Close()
 		if cerr != nil {
 			logger.Error("Consul client close error", zap.Error(cerr))
 		}
 	}()
-	err = consul.Register(conf.Consul.ServiceID.String(), conf.Consul.ServiceName, conf.Http.Port, nil)
+	err = cd.Register(conf.Consul.ServiceID.String(), conf.Consul.ServiceName, conf.Http.Port, nil)
 	if err != nil {
 		logger.Error("Cannot register service in consul", zap.Error(err))
 		return err
 	}
 	defer func() {
-		err := consul.Deregister(conf.Consul.ServiceID.String())
+		err := cd.Deregister(conf.Consul.ServiceID.String())
 		if err != nil {
 			logger.Error("Cannot deregister service", zap.Error(err))
 		}

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/FlameInTheDark/rebot/foundation/metricsclients"
 	"os"
 	"os/signal"
 	"time"
@@ -11,20 +10,16 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/FlameInTheDark/rebot/app/weather/config"
-	"github.com/FlameInTheDark/rebot/app/weather/service"
 	"github.com/FlameInTheDark/rebot/business/transport/commandst"
 	"github.com/FlameInTheDark/rebot/foundation/consul"
 	"github.com/FlameInTheDark/rebot/foundation/database"
 	"github.com/FlameInTheDark/rebot/foundation/discord"
-	"github.com/FlameInTheDark/rebot/foundation/geonames"
 	"github.com/FlameInTheDark/rebot/foundation/logs"
-	"github.com/FlameInTheDark/rebot/foundation/owm"
 	"github.com/FlameInTheDark/rebot/foundation/queue"
 	"github.com/FlameInTheDark/rebot/foundation/redisdb"
-	"github.com/FlameInTheDark/rebot/foundation/wgen"
 )
 
-func RunWeatherService(logger *zap.Logger) error {
+func RunExchangeService(logger *zap.Logger) error {
 	conf, err := config.GetConfig()
 	if err != nil {
 		logger.Error("configuration not loaded", zap.Error(err))
@@ -112,30 +107,6 @@ func RunWeatherService(logger *zap.Logger) error {
 		return err
 	}
 
-	generator, err := wgen.NewGenerator(conf.Weather.FontFile, conf.Weather.IconsFile, conf.Weather.IconsBindingsFile)
-	if err != nil {
-		logger.Error("Weather image generator error", zap.Error(err))
-		return err
-	}
-
-	forecast := owm.NewClient(conf.Forecast.OWMKey, owm.UnitsMetric, owm.LanguageEnglish)
-
-	location := geonames.NewClient(conf.Location.GeonamesUsername)
-
-	mc, err := metricsclients.NewInfluxClient(conf.Influx.Host, conf.Influx.Token, conf.Influx.Org, conf.Influx.Bucket)
-	if err != nil {
-		logger.Error("Metrics client error", zap.Error(err))
-		return err
-	}
-
-	cmd := service.NewWeatherService(generator, forecast, location, rbc, sess, db, mc, logger)
-
-	err = cmd.Run()
-	if err != nil {
-		logger.Error("Error running weather service", zap.Error(err))
-		return err
-	}
-
 	logger.Debug("Creating Consul client")
 	cd, err := consul.NewConsulClient(conf.Consul.Address)
 	if err != nil {
@@ -154,27 +125,14 @@ func RunWeatherService(logger *zap.Logger) error {
 		return c.Status(fiber.StatusOK).SendString(time.Now().String())
 	})
 
-	meta, err := consul.MarshalCommandMeta(consul.CommandMetaInfo{
-		{
-			Command: "w",
-			Queue:   "weather",
-		},
-		{
-			Command: "ww",
-			Queue:   "wweather",
-		}})
+	meta, err := consul.MarshalCommandMeta(consul.CommandMetaInfo{{"w", "weather"}, {"ww", "wweather"}})
 	if err != nil {
 		logger.Error("Consul meta parsing error", zap.Error(err))
 		return err
 	}
 
 	logger.Debug("Registering service", zap.String("service-name", conf.Consul.ServiceName))
-	err = cd.Register(
-		conf.Consul.ServiceID.String(),
-		conf.Consul.ServiceName,
-		conf.Http.Port,
-		map[string]string{"command_data": meta},
-	)
+	err = cd.Register(conf.Consul.ServiceID.String(), conf.Consul.ServiceName, conf.Http.Port, map[string]string{"command_data": meta})
 	if err != nil {
 		logger.Error("Cannot register service in consul", zap.Error(err))
 		return err

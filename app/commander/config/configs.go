@@ -33,7 +33,7 @@ type Config struct {
 		Database int    `env:"REDIS_DATABASE" env-default:"0"`
 	}
 	Metrics struct {
-		Host   string `env:"METRICS_HOST" env-default:"influxdb"`
+		Host   string `env:"METRICS_HOST" env-default:"metricsclients"`
 		Port   int    `env:"METRICS_PORT" env-default:"8086"`
 		Bucket string `env:"METRICS_BUCKET" env-default:"rebot"`
 		Token  string `env:"METRICS_TOKEN"`
@@ -55,7 +55,11 @@ type UUID string
 
 func (u *UUID) SetValue(s string) error {
 	if s != "" {
-		*u = UUID(s)
+		id, err := uuid.Parse(s)
+		if err != nil {
+			return err
+		}
+		*u = UUID(id.String())
 		return nil
 	}
 	*u = UUID(uuid.NewString())

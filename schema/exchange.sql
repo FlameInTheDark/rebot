@@ -1,27 +1,27 @@
-create table weather
+create table exchange
 (
     id         serial primary key,
     discord_id varchar not null unique,
-    location   varchar not null default ''
+    base       varchar not null default 'USD'
 );
 
 -- name: Find :one
-select location
-from weather
+select base
+from exchange
 where discord_id = $1;
 
 -- name: Create :one
-insert into weather (discord_id, location)
+insert into exchange (discord_id, base)
 values ($1, $2) returning *;
 
 -- name: Update :exec
-update weather
-set location = $1
+update exchange
+set base = $1
 where discord_id = $1;
 
 -- name: Insert :exec
-insert into weather (discord_id, location)
+insert into exchange (discord_id, base)
 values ($1, $2) on conflict (discord_id)
 do
 update
-    set location = $2;
+    set base = $2;

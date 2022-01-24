@@ -5,6 +5,20 @@ networks:
     driver: bridge
 
 services:
+  proxy:
+    image: 'jc21/nginx-proxy-manager:latest'
+    container_name: rebot-proxy
+    networks:
+      - shared-network
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '81:81'
+      - '443:443'
+    volumes:
+      - ./data:/data
+      - ./letsencrypt:/etc/letsencrypt
+
   rebot-api:
     container_name: rebot-api
     networks:
@@ -18,8 +32,6 @@ services:
       interval: 30s
       timeout: 20s
       retries: 3
-    ports:
-      - "8080:8080"
     depends_on:
       - db
       - mq

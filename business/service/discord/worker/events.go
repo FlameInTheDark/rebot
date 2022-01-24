@@ -38,4 +38,3 @@ func (er *EventRegistrar) Notify(event string, message MessageEvent) {
 	}
 	er.events[event].Notify(&message)
 }
-

@@ -13,6 +13,8 @@ import (
 var _ CommandsSender = (*RabbitCommandsTransport)(nil)
 var _ CommandsReceiver = (*RabbitCommandsTransport)(nil)
 
+type ErrMetricsFunc func(command string)
+
 type RabbitCommandsTransport struct {
 	conn    *amqp.Connection
 	channel *amqp.Channel
@@ -22,9 +24,22 @@ type RabbitCommandsTransport struct {
 
 	logger *zap.Logger
 
+	metrics CommandsMetrics
+
 	close chan struct{}
 }
 
+type emptyMetrics struct{}
+
+func (em *emptyMetrics) CommandUsed(command string)   {}
+func (em *emptyMetrics) CommandFailed(command string) {}
+
+//SetErrorMetrics add metrics interface to save metrics commands usage
+func (t *RabbitCommandsTransport) SetErrorMetrics(metrics CommandsMetrics) {
+	t.metrics = metrics
+}
+
+//AddHandler add command handler
 func (t *RabbitCommandsTransport) AddHandler(command string, handler ReceiverHandler) {
 	t.rw.Lock()
 	defer t.rw.Unlock()
@@ -33,6 +48,7 @@ func (t *RabbitCommandsTransport) AddHandler(command string, handler ReceiverHan
 	}
 }
 
+//Start starts handling command requests
 func (t *RabbitCommandsTransport) Start(command string) error {
 	var th ReceiverHandler
 	if _, ok := t.handlers[command]; ok {
@@ -61,7 +77,18 @@ func (t *RabbitCommandsTransport) Start(command string) error {
 					continue
 				}
 				t.logger.Debug("Got message", zap.Reflect("rabbit-message", cmd))
-				handler(cmd)
+				cerr := handler(cmd)
+				if cerr != nil {
+					t.logger.Debug(
+						"Command handler error",
+						zap.Error(err),
+						zap.String("channel-id", cmd.ChannelID),
+						zap.String("user-id", cmd.UserID),
+					)
+					t.metrics.CommandFailed(command)
+					continue
+				}
+				t.metrics.CommandUsed(command)
 			case <-close:
 				return
 			}
@@ -81,11 +108,12 @@ func NewRabbitCommandsTransport(conn *amqp.Connection, logger *zap.Logger) (*Rab
 	}
 
 	return &RabbitCommandsTransport{
-		conn:    conn,
+		conn:     conn,
 		handlers: make(map[string]ReceiverHandler),
-		channel: ch,
-		logger:  logger,
-		close:   make(chan struct{}),
+		channel:  ch,
+		logger:   logger,
+		close:    make(chan struct{}),
+		metrics:  &emptyMetrics{},
 	}, nil
 }
 

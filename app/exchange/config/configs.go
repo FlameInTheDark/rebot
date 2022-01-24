@@ -1,10 +1,11 @@
 package config
 
 import (
+	"sync"
+
 	"github.com/google/uuid"
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/pkg/errors"
-	"sync"
 )
 
 var lock = &sync.Mutex{}
@@ -13,6 +14,9 @@ type Config struct {
 	Http struct {
 		Port int `env:"HTTP_PORT" env-default:"8080"`
 	}
+	Discord struct {
+		Token string `env:"DISCORD_TOKEN"`
+	}
 	Database struct {
 		Host       string `env:"DATABASE_HOST" env-default:"db"`
 		Port       int    `env:"DATABASE_PORT" env-default:"5432"`
@@ -20,7 +24,13 @@ type Config struct {
 		Username   string `env:"DATABASE_USERNAME" env-default:"postgres"`
 		Password   string `env:"DATABASE_PASSWORD" env-default:"postgres"`
 		DisableTLS bool   `env:"DATABASE_DISABLE_TLS" env-default:"true"`
-		CetrPath   string `env:"DATABASE_CERT_PATH"`
+		CertPath   string `env:"DATABASE_CERT_PATH"`
+	}
+	Redis struct {
+		Host     string `env:"REDIS_HOST" env-default:"redis"`
+		Port     int    `env:"REDIS_PORT" env-default:"6379"`
+		Password string `env:"REDIS_PASSWORD" env-default:"redispassword"`
+		Database int    `env:"REDIS_DATABASE" env-default:"0"`
 	}
 	Metrics struct {
 		Host   string `env:"METRICS_HOST" env-default:"metricsclients"`
@@ -28,16 +38,16 @@ type Config struct {
 		Bucket string `env:"METRICS_BUCKET" env-default:"rebot"`
 		Token  string `env:"METRICS_TOKEN"`
 	}
+	RabbitMQ struct {
+		Host     string `env:"RABBIT_HOST" env-default:"mq"`
+		Port     int    `env:"RABBIT_PORT" env-default:"5672"`
+		User     string `env:"RABBIT_USER" env-default:"rabbitmq"`
+		Password string `env:"RABBIT_PASS" env-default:"rabbitpass"`
+	}
 	Consul struct {
 		Address     string `env:"CONSUL_ADDR" env-default:"consul:8500"`
 		ServiceID   UUID   `env:"CONSUL_ID" env-default:""`
-		ServiceName string `env:"CONSUL_NAME" env-default:"api"`
-	}
-	Influx struct {
-		Host   string `env:"INFLUX_HOST" env-default:"influxdb:8086"`
-		Token  string `env:"INFLUX_TOKEN" env-required:""`
-		Org    string `env:"INFLUX_ORG" env-required:""`
-		Bucket string `env:"INFLUX_BUCKET" env-required:""`
+		ServiceName string `env:"CONSUL_NAME" env-default:"command"`
 	}
 }
 
@@ -45,7 +55,11 @@ type UUID string
 
 func (u *UUID) SetValue(s string) error {
 	if s != "" {
-		*u = UUID(s)
+		id, err := uuid.Parse(s)
+		if err != nil {
+			return err
+		}
+		*u = UUID(id.String())
 		return nil
 	}
 	*u = UUID(uuid.NewString())

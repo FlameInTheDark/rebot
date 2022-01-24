@@ -1,10 +1,12 @@
 package geonames
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/pkg/errors"
 	"net/http"
+	"net/url"
 )
 
 type Client struct {
@@ -15,11 +17,23 @@ func NewClient(username string) *Client {
 	return &Client{username: username}
 }
 
-func (c *Client) FindOneLocation(name string) (*Geoname, error) {
-	resp, err := http.Get(fmt.Sprintf("http://api.geonames.org/searchJSON?q=%v&maxRows=1&username=%v", name, c.username))
+func (c *Client) FindOneLocation(ctx context.Context, name string) (*Geoname, error) {
+	uv := url.Values{}
+	uv.Add("q", name)
+	uv.Add("maxRows", "1")
+	uv.Add("username", c.username)
+
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("http://api.geonames.org/searchJSON?%s", uv.Encode()), nil)
 	if err != nil {
 		return nil, err
 	}
+
+	client := http.DefaultClient
+	resp, err := client.Do(req.WithContext(ctx))
+	if err != nil {
+		return nil, err
+	}
+
 	var result LocationResult
 
 	err = json.NewDecoder(resp.Body).Decode(&result)

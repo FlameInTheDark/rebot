@@ -20,3 +20,10 @@ packages:
     schema: "schema/weather.sql"
     emit_json_tags: true
     emit_interface: true
+
+  - name: "exchangedb"
+    path: "business/models/exchangedb"
+    queries: "schema/exchange.sql"
+    schema: "schema/exchange.sql"
+    emit_json_tags: true
+    emit_interface: true

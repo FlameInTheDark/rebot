@@ -29,7 +29,7 @@ type RabbitCommandObserver struct {
 
 func NewRabbitCommandObserver(queue string, cmdSender commandst.CommandsSender, logger *zap.Logger) *RabbitCommandObserver {
 	return &RabbitCommandObserver{
-		queue: queue,
+		queue:     queue,
 		cmdSender: cmdSender,
 		logger:    logger,
 	}

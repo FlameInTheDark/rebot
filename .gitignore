@@ -16,3 +16,6 @@
 # vendor/
 
 zarf/compose/config-compose.yaml
+/zarf/compose/migration
+/zarf/compose/letsencrypt
+/zarf/compose/data

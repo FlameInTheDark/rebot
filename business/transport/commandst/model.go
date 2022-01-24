@@ -4,9 +4,15 @@ type CommandsSender interface {
 	SendCommand(cmd CommandMessage, queue string) error
 }
 
+type CommandsMetrics interface {
+	CommandUsed(command string)
+	CommandFailed(command string)
+}
+
 type CommandsReceiver interface {
 	ReceiveCommands(command string) (<-chan CommandMessage, error)
 	AddHandler(command string, handler ReceiverHandler)
+	SetErrorMetrics(metrics CommandsMetrics)
 	Start(command string) error
 	Close()
 }
@@ -19,7 +25,7 @@ type CommandMessage struct {
 	Message   string `json:"message"`
 }
 
-type ReceiverHandler func(m CommandMessage)
+type ReceiverHandler func(m CommandMessage) error
 
 type PingStatus int
 

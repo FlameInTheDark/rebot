@@ -15,6 +15,11 @@ services:
       - REDIS_DATABASE=0
       - LOG_LEVEL=debug
       - CONSUL_ADDR=consul
+      - CONSUL_ID=407238bc-590e-4d35-a38c-c998f0160781
+      - INFLUX_HOST=http://influxdb:8086
+      - INFLUX_TOKEN=rebot_token
+      - INFLUX_ORG=myorg
+      - INFLUX_BUCKET=rebot_bucket
 
   rebot-commander:
     environment:
@@ -30,6 +35,11 @@ services:
       - REDIS_DATABASE=0
       - LOG_LEVEL=debug
       - CONSUL_ADDR=consul
+      - CONSUL_ID=1473aa85-8d5a-4963-bc3e-16bd937253cc
+      - INFLUX_HOST=http://influxdb:8086
+      - INFLUX_TOKEN=rebot_token
+      - INFLUX_ORG=myorg
+      - INFLUX_BUCKET=rebot_bucket
 
   rebot-weather:
     environment:
@@ -52,6 +62,11 @@ services:
       - WEATHER_FONT_FILE=lato.ttf
       - WEATHER_ICONS_FILE=weathericons.ttf
       - WEATHER_ICONS_BINDINGS_FILE=icons_binds.json
+      - CONSUL_ID=6a84ebb8-6457-44a9-b610-f27ce5a38da6
+      - INFLUX_HOST=http://influxdb:8086
+      - INFLUX_TOKEN=rebot_token
+      - INFLUX_ORG=myorg
+      - INFLUX_BUCKET=rebot_bucket
 
   db:
     environment:
@@ -69,7 +84,7 @@ services:
     command: "agent -server"
 
   influxdb-cli:
-    entrypoint: influx setup --bucket rebot_bucket -t rebot_tocken -o myorg --username=rebotuser --password=rebotpass --host=http://influxdb:8086 -f
+    entrypoint: influx setup --bucket rebot_bucket -t rebot_token -o myorg --username=rebotuser --password=rebotpass --host=http://influxdb:8086 -f
 
   db-migrate:
     command: -path=/migrations/ -database=postgres://postgres:postgres@db:5432/postgres?sslmode=disable up 2

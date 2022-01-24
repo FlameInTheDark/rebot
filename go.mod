@@ -17,6 +17,7 @@ require (
 	github.com/hashicorp/consul/api v1.11.0
 	github.com/hashicorp/golang-lru v0.5.1 // indirect
 	github.com/ilyakaznacheev/cleanenv v1.2.5
+	github.com/influxdata/influxdb-client-go/v2 v2.7.0 // indirect
 	github.com/jmoiron/sqlx v1.3.4
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/lib/pq v1.10.2

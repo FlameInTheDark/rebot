@@ -11,6 +11,10 @@ import (
 	"golang.org/x/image/font"
 )
 
+var (
+	errNilContext = errors.New("graphic context is nil")
+)
+
 // Generator is a weather picture generator
 type Generator struct {
 	iconsFile string
@@ -31,6 +35,8 @@ type ForecastRow struct {
 	Temperature float64
 	Humidity    int
 	Clouds      int
+	Max         float64
+	Min         float64
 	Time        time.Time
 }
 
@@ -75,14 +81,16 @@ func (g *Generator) loadIcons(dc *gg.Context, points float64) error {
 
 func (g *Generator) Generate(data *ForecastData) (*bytes.Buffer, error) {
 	dc := gg.NewContext(400, 650)
-	defer func() {
-		dc.Clear()
-		dc = nil
-	}()
 
-	g.prepareImage(dc)
-	g.drawWeatherLines(dc)
-	err := g.drawHeader(dc, data.Location, data.Forecast[0])
+	err := g.prepareImage(dc)
+	if err != nil {
+		return nil, err
+	}
+	err = g.drawWeatherLines(dc)
+	if err != nil {
+		return nil, err
+	}
+	err = g.drawHeader(dc, data.Location, data.Forecast[0])
 	if err != nil {
 		return nil, err
 	}
@@ -115,10 +123,11 @@ func (g *Generator) Generate(data *ForecastData) (*bytes.Buffer, error) {
 	return buf, nil
 }
 
-func (g *Generator) prepareImage(dc *gg.Context) {
+func (g *Generator) prepareImage(dc *gg.Context) error {
 	if dc == nil {
-		return
+		return errNilContext
 	}
+
 	dc.SetRGBA(0, 0, 0, 0)
 	dc.Clear()
 
@@ -126,9 +135,14 @@ func (g *Generator) prepareImage(dc *gg.Context) {
 	dc.SetRGB255(242, 97, 73)
 	dc.DrawRoundedRectangle(0, 0, 400, 650, 10)
 	dc.Fill()
+	return nil
 }
 
-func (g *Generator) drawWeatherLines(dc *gg.Context) {
+func (g *Generator) drawWeatherLines(dc *gg.Context) error {
+	if dc == nil {
+		return errNilContext
+	}
+
 	dc.SetRGB255(234, 89, 65)
 	dc.DrawRectangle(0, 250, 400, 100)
 	dc.DrawRectangle(0, 450, 400, 100)
@@ -141,9 +155,13 @@ func (g *Generator) drawWeatherLines(dc *gg.Context) {
 	dc.DrawLine(0, 450, 400, 450)
 	dc.DrawLine(0, 549, 400, 548)
 	dc.Stroke()
+	return nil
 }
 
 func (g *Generator) drawHeader(dc *gg.Context, location string, forecast ForecastRow) error {
+	if dc == nil {
+		return errNilContext
+	}
 	// Header (place and date)
 	err := g.loadFont(dc, 20)
 	if err != nil {
@@ -172,18 +190,22 @@ func (g *Generator) drawHeader(dc *gg.Context, location string, forecast Forecas
 		return err
 	}
 
-	dc.DrawStringAnchored(fmt.Sprintf("%d°", int(forecast.Temperature)), 100, 120, 0.5, 0.5)
+	dc.DrawStringAnchored(fmt.Sprintf("%d°", int(forecast.Temperature)), 100, 100, 0.5, 0.5)
 
 	err = g.loadIcons(dc, 70)
 	if err != nil {
 		return err
 	}
 
-	dc.DrawStringAnchored(g.bindings.Get(forecast.IconCode), 250, 120, 0, 0.7)
+	dc.DrawStringAnchored(g.bindings.Get(forecast.IconCode), 250, 100, 0, 0.7)
 	return nil
 }
 
 func (g *Generator) drawHeaderDaily(dc *gg.Context, location string, forecast ForecastRow) error {
+	if dc == nil {
+		return errNilContext
+	}
+
 	// Header (place and date)
 	err := g.loadFont(dc, 20)
 	if err != nil {
@@ -212,18 +234,22 @@ func (g *Generator) drawHeaderDaily(dc *gg.Context, location string, forecast Fo
 		return err
 	}
 
-	dc.DrawStringAnchored(fmt.Sprintf("%d°", int(forecast.Temperature)), 100, 120, 0.5, 0.5)
+	dc.DrawStringAnchored(fmt.Sprintf("%d°", int(forecast.Temperature)), 100, 100, 0.5, 0.5)
 
 	err = g.loadIcons(dc, 70)
 	if err != nil {
 		return err
 	}
 
-	dc.DrawStringAnchored(g.bindings.Get(forecast.IconCode), 250, 120, 0, 0.7)
+	dc.DrawStringAnchored(g.bindings.Get(forecast.IconCode), 250, 100, 0, 0.7)
 	return nil
 }
 
 func (g *Generator) drawTime(dc *gg.Context, data []ForecastRow) error {
+	if dc == nil {
+		return errNilContext
+	}
+
 	if len(data) < 4 {
 		return errors.New("not enough data")
 	}
@@ -242,6 +268,10 @@ func (g *Generator) drawTime(dc *gg.Context, data []ForecastRow) error {
 }
 
 func (g *Generator) drawDays(dc *gg.Context, data []ForecastRow) error {
+	if dc == nil {
+		return errNilContext
+	}
+
 	if len(data) < 4 {
 		return errors.New("not enough data")
 	}
@@ -260,6 +290,10 @@ func (g *Generator) drawDays(dc *gg.Context, data []ForecastRow) error {
 }
 
 func (g *Generator) drawHumidity(dc *gg.Context, data []ForecastRow) error {
+	if dc == nil {
+		return errNilContext
+	}
+
 	if len(data) < 4 {
 		return errors.New("not enough data")
 	}
@@ -314,6 +348,23 @@ func (g *Generator) drawWeather(dc *gg.Context, data []ForecastRow) error {
 	return nil
 }
 
+func (g *Generator) drawWeatherDaily(dc *gg.Context, data []ForecastRow) error {
+	if len(data) < 4 {
+		return errors.New("not enough data")
+	}
+	err := g.loadFont(dc, 35)
+	if err != nil {
+		return err
+	}
+
+	dc.SetRGBA(1, 1, 1, 1)
+	dc.DrawStringAnchored(fmt.Sprintf("%v°/%v°", int(data[0].Max), int(data[0].Min)), 320, 300, 0.5, 0.5)
+	dc.DrawStringAnchored(fmt.Sprintf("%v°/%v°", int(data[1].Max), int(data[1].Min)), 320, 400, 0.5, 0.5)
+	dc.DrawStringAnchored(fmt.Sprintf("%v°/%v°", int(data[2].Max), int(data[2].Min)), 320, 500, 0.5, 0.5)
+	dc.DrawStringAnchored(fmt.Sprintf("%v°/%v°", int(data[3].Max), int(data[3].Min)), 320, 600, 0.5, 0.5)
+	return nil
+}
+
 func (g *Generator) drawIcons(dc *gg.Context, data []ForecastRow) error {
 	err := g.loadIcons(dc, 50)
 	if err != nil {
@@ -331,10 +382,6 @@ func (g *Generator) drawIcons(dc *gg.Context, data []ForecastRow) error {
 
 func (g *Generator) GenerateDaily(data *ForecastData) (*bytes.Buffer, error) {
 	dc := gg.NewContext(400, 650)
-	defer func() {
-		dc.Clear()
-		dc = nil
-	}()
 
 	g.prepareImage(dc)
 	g.drawWeatherLines(dc)
@@ -354,7 +401,7 @@ func (g *Generator) GenerateDaily(data *ForecastData) (*bytes.Buffer, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = g.drawWeather(dc, data.Forecast[1:])
+	err = g.drawWeatherDaily(dc, data.Forecast[1:])
 	if err != nil {
 		return nil, err
 	}
