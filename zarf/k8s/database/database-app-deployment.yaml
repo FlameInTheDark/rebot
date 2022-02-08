@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db-app-deployment
+  labels:
+    app: db-app
+    project: rebot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: db-app
+  template:
+    metadata:
+      labels:
+        project: rebot
+        app: db-app
+    spec:
+      containers:
+        - name: rebot-db
+          image: postgres:13.3-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rebot-postgres-secret
+                  key: password
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: postgredb
+      volumes:
+        - name: postgredb
+          persistentVolumeClaim:
+            claimName: postgres-pv-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: db-app-service
+  labels:
+    project: rebot
+spec:
+  selector:
+    app: db-app
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432

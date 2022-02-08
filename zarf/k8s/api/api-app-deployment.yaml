@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-app-deployment
+  labels:
+    app: api-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api-app
+  template:
+    metadata:
+      labels:
+        project: rebot
+        app: api-app
+    spec:
+      containers:
+        - name: rebot-api
+          image: flameinthedark/rebot-api:latest
+          ports:
+            - containerPort: 8080
+          args:
+            - run
+          env:
+            - name: DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: rebot-postgres-secret
+                  key: username
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rebot-postgres-secret
+                  key: password
+            - name: DATABASE_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: db-app-configmap
+                  key: host
+            - name: DATABASE_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: db-app-configmap
+                  key: port
+            - name: DATABASE_DBNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: db-app-configmap
+                  key: database
+            - name: DISCORD_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: rebot-app-secret
+                  key: discord-token
+            - name: REDIS_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: redis-app-configmap
+                  key: host
+            - name: REDIS_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: redis-app-configmap
+                  key: port
+            - name: REDIS_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: redis-app-configmap
+                  key: database
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rebot-redis-secret
+                  key: password
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-app-service
+spec:
+  selector:
+    app: api-app
+  ports:
+    - name: api-app-listener
+      protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: LoadBalancer

@@ -32,11 +32,11 @@ type Config struct {
 		Password string `env:"REDIS_PASSWORD" env-default:"redispassword"`
 		Database int    `env:"REDIS_DATABASE" env-default:"0"`
 	}
-	Metrics struct {
-		Host   string `env:"METRICS_HOST" env-default:"metricsclients"`
-		Port   int    `env:"METRICS_PORT" env-default:"8086"`
-		Bucket string `env:"METRICS_BUCKET" env-default:"rebot"`
-		Token  string `env:"METRICS_TOKEN"`
+	Influx struct {
+		Host   string `env:"INFLUX_HOST" env-default:"influxdb:8086"`
+		Token  string `env:"INFLUX_TOKEN" env-required:""`
+		Org    string `env:"INFLUX_ORG" env-required:""`
+		Bucket string `env:"INFLUX_BUCKET" env-required:""`
 	}
 	RabbitMQ struct {
 		Host     string `env:"RABBIT_HOST" env-default:"mq"`
@@ -46,6 +46,7 @@ type Config struct {
 	}
 	Consul struct {
 		Address     string `env:"CONSUL_ADDR" env-default:"consul:8500"`
+		ServiceHost string `env:"CONSUL_SERVICE_HOST"`
 		ServiceID   UUID   `env:"CONSUL_ID" env-default:""`
 		ServiceName string `env:"CONSUL_NAME" env-default:"commander"`
 	}
@@ -72,7 +73,7 @@ func (u UUID) String() string {
 
 var config *Config
 
-//GetConfig load config from ENVs or .env file. If config is already loaded, return it.
+// GetConfig load config from ENVs or .env file. If config is already loaded, return it.
 func GetConfig() (*Config, error) {
 	if config == nil {
 		lock.Lock()

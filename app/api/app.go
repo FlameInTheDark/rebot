@@ -71,7 +71,7 @@ func RunAPIServer(logger *zap.Logger) error {
 			logger.Error("Consul client close error", zap.Error(cerr))
 		}
 	}()
-	err = cd.Register(conf.Consul.ServiceID.String(), conf.Consul.ServiceName, conf.Http.Port, nil)
+	err = cd.Register(conf.Consul.ServiceID.String(), conf.Consul.ServiceName, conf.Consul.ServiceHost, conf.HTTP.Port, nil)
 	if err != nil {
 		logger.Error("Cannot register service in consul", zap.Error(err))
 		return err
@@ -95,5 +95,5 @@ func RunAPIServer(logger *zap.Logger) error {
 			}
 		}
 	}()
-	return app.Listen(fmt.Sprintf(":%d", conf.Http.Port))
+	return app.Listen(fmt.Sprintf(":%d", conf.HTTP.Port))
 }

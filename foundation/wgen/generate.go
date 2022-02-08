@@ -79,6 +79,8 @@ func (g *Generator) loadIcons(dc *gg.Context, points float64) error {
 	return nil
 }
 
+// Generate creates a weather forecast picture
+//TODO: Hardcoded generator isn't good. Need to create a template engine. It will also allow users to modify the template
 func (g *Generator) Generate(data *ForecastData) (*bytes.Buffer, error) {
 	dc := gg.NewContext(400, 650)
 

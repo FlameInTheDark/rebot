@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq-app-deployment
+  labels:
+    project: rebot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbitmq-app
+  template:
+    metadata:
+      labels:
+        app: rabbitmq-app
+        project: rebot
+    spec:
+      containers:
+        - name: rebot-rabbitmq
+          image: rabbitmq:3.9.7-management-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5672
+            - containerPort: 15672
+          env:
+            - name: RABBITMQ_DEFAULT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rebot-rabbitmq-secret
+                  key: username
+            - name: RABBITMQ_DEFAULT_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: rebot-rabbitmq-secret
+                  key: password
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq-app-service
+  labels:
+    project: rebot
+spec:
+  selector:
+    app: rabbitmq-app
+  ports:
+    - name: rabbitmq-amqp-port
+      protocol: TCP
+      port: 5672
+      targetPort: 5672
+    - name: rabbitmq-mangement-port
+      protocol: TCP
+      port: 15672
+      targetPort: 15672

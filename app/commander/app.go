@@ -134,7 +134,7 @@ func RunCommanderService(logger *zap.Logger) error {
 	})
 
 	logger.Debug("Registering service", zap.String("service-name", conf.Consul.ServiceName))
-	err = cd.Register(conf.Consul.ServiceID.String(), conf.Consul.ServiceName, conf.Http.Port, nil)
+	err = cd.Register(conf.Consul.ServiceID.String(), conf.Consul.ServiceName, conf.Consul.ServiceHost, conf.Http.Port, nil)
 	if err != nil {
 		logger.Error("Cannot register service in consul", zap.Error(err))
 		return err

@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-app-configmap
+data:
+  host: db-app-service
+  port: "5432"
+  database: "postgres"

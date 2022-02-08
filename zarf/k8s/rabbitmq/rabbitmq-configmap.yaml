@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rabbitmq-app-configmap
+data:
+  host: rabbitmq-app-service
+  port: "5672"

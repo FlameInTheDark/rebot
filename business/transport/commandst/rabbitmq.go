@@ -39,7 +39,7 @@ func (t *RabbitCommandsTransport) SetErrorMetrics(metrics CommandsMetrics) {
 	t.metrics = metrics
 }
 
-//AddHandler add command handler
+// AddHandler add command handler
 func (t *RabbitCommandsTransport) AddHandler(command string, handler ReceiverHandler) {
 	t.rw.Lock()
 	defer t.rw.Unlock()
@@ -48,7 +48,22 @@ func (t *RabbitCommandsTransport) AddHandler(command string, handler ReceiverHan
 	}
 }
 
-//Start starts handling command requests
+func (t *RabbitCommandsTransport) handle(handler ReceiverHandler, msg CommandMessage, command string) {
+	cerr := handler(msg)
+	if cerr != nil {
+		t.logger.Debug(
+			"Command handler error",
+			zap.Error(cerr),
+			zap.String("channel-id", msg.ChannelID),
+			zap.String("user-id", msg.UserID),
+		)
+		t.metrics.CommandFailed(command)
+		return
+	}
+	t.metrics.CommandUsed(command)
+}
+
+// Start starts handling command requests
 func (t *RabbitCommandsTransport) Start(command string) error {
 	var th ReceiverHandler
 	if _, ok := t.handlers[command]; ok {
@@ -77,18 +92,7 @@ func (t *RabbitCommandsTransport) Start(command string) error {
 					continue
 				}
 				t.logger.Debug("Got message", zap.Reflect("rabbit-message", cmd))
-				cerr := handler(cmd)
-				if cerr != nil {
-					t.logger.Debug(
-						"Command handler error",
-						zap.Error(err),
-						zap.String("channel-id", cmd.ChannelID),
-						zap.String("user-id", cmd.UserID),
-					)
-					t.metrics.CommandFailed(command)
-					continue
-				}
-				t.metrics.CommandUsed(command)
+				go t.handle(handler, cmd, command)
 			case <-close:
 				return
 			}

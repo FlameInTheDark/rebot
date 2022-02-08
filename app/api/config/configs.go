@@ -1,16 +1,17 @@
 package config
 
 import (
+	"sync"
+
 	"github.com/google/uuid"
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/pkg/errors"
-	"sync"
 )
 
 var lock = &sync.Mutex{}
 
 type Config struct {
-	Http struct {
+	HTTP struct {
 		Port int `env:"HTTP_PORT" env-default:"8080"`
 	}
 	Database struct {
@@ -22,14 +23,9 @@ type Config struct {
 		DisableTLS bool   `env:"DATABASE_DISABLE_TLS" env-default:"true"`
 		CetrPath   string `env:"DATABASE_CERT_PATH"`
 	}
-	Metrics struct {
-		Host   string `env:"METRICS_HOST" env-default:"metricsclients"`
-		Port   int    `env:"METRICS_PORT" env-default:"8086"`
-		Bucket string `env:"METRICS_BUCKET" env-default:"rebot"`
-		Token  string `env:"METRICS_TOKEN"`
-	}
 	Consul struct {
 		Address     string `env:"CONSUL_ADDR" env-default:"consul:8500"`
+		ServiceHost string `env:"CONSUL_SERVICE_HOST"`
 		ServiceID   UUID   `env:"CONSUL_ID" env-default:""`
 		ServiceName string `env:"CONSUL_NAME" env-default:"api"`
 	}
@@ -58,7 +54,7 @@ func (u UUID) String() string {
 
 var config *Config
 
-//GetConfig load config from ENVs or .env file. If config is already loaded, return it.
+// GetConfig load config from ENVs or .env file. If config is already loaded, return it.
 func GetConfig() (*Config, error) {
 	if config == nil {
 		lock.Lock()

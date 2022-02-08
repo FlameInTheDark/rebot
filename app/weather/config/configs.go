@@ -46,6 +46,7 @@ type Config struct {
 	}
 	Consul struct {
 		Address     string `env:"CONSUL_ADDR" env-default:"consul:8500"`
+		ServiceHost string `env:"CONSUL_SERVICE_HOST"`
 		ServiceID   UUID   `env:"CONSUL_ID" env-default:""`
 		ServiceName string `env:"CONSUL_NAME" env-default:"command"`
 	}

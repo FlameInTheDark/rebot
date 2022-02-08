@@ -1,0 +1,142 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: commander-app-deployment
+  labels:
+    app: commander-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rebot-commander
+  template:
+    metadata:
+      labels:
+        app: rebot-commander
+        project: rebot
+    spec:
+      containers:
+        - name: rebot-commander
+          image: flameinthedark/rebot-commander:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          command: ["./commander"]
+          args:
+            - run
+          env:
+            - name: HTTP_PORT
+              value: "8080"
+            - name: DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: rebot-postgres-secret
+                  key: username
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rebot-postgres-secret
+                  key: password
+            - name: DATABASE_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: db-app-configmap
+                  key: host
+            - name: DATABASE_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: db-app-configmap
+                  key: port
+            - name: DATABASE_DBNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: db-app-configmap
+                  key: database
+            - name: DISCORD_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: rebot-app-secret
+                  key: discord-token
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: redis-app-configmap
+                  key: host
+            - name: REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: redis-app-configmap
+                  key: port
+            - name: REDIS_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: redis-app-configmap
+                  key: database
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rebot-redis-secret
+                  key: password
+            - name: LOG_LEVEL
+              value: "debug"
+            - name: CONSUL_ADDR
+              valueFrom:
+                configMapKeyRef:
+                  name: consul-app-configmap
+                  key: host
+            - name: CONSUL_SERVICE_HOST
+              value: "commander-app-service"
+            - name: INFLUX_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: influx-app-configmap
+                  key: host
+            - name: INFLUX_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: rebot-influx-secret
+                  key: token
+            - name: INFLUX_ORG
+              valueFrom:
+                secretKeyRef:
+                  name: rebot-influx-secret
+                  key: organization
+            - name: INFLUX_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: rebot-influx-secret
+                  key: bucket
+            - name: RABBIT_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name:  rabbitmq-app-configmap
+                  key: host
+            - name: RABBIT_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: rabbitmq-app-configmap
+                  key: port
+            - name: RABBIT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rebot-rabbitmq-secret
+                  key: username
+            - name: RABBIT_PASS
+              valueFrom:
+                secretKeyRef:
+                  name:  rebot-rabbitmq-secret
+                  key: password
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: commander-app-service
+  labels:
+    project: rebot
+spec:
+  selector:
+    app: rebot-commander
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080

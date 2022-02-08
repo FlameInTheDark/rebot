@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/FlameInTheDark/rebot/foundation/metricsclients"
 	"os"
 	"os/signal"
 	"time"
@@ -18,6 +17,7 @@ import (
 	"github.com/FlameInTheDark/rebot/foundation/discord"
 	"github.com/FlameInTheDark/rebot/foundation/geonames"
 	"github.com/FlameInTheDark/rebot/foundation/logs"
+	"github.com/FlameInTheDark/rebot/foundation/metricsclients"
 	"github.com/FlameInTheDark/rebot/foundation/owm"
 	"github.com/FlameInTheDark/rebot/foundation/queue"
 	"github.com/FlameInTheDark/rebot/foundation/redisdb"
@@ -172,6 +172,7 @@ func RunWeatherService(logger *zap.Logger) error {
 	err = cd.Register(
 		conf.Consul.ServiceID.String(),
 		conf.Consul.ServiceName,
+		conf.Consul.ServiceHost,
 		conf.Http.Port,
 		map[string]string{"command_data": meta},
 	)

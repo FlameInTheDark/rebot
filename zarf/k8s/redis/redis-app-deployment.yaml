@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-app-deployment
+  labels:
+    project: rebot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis-app
+  template:
+    metadata:
+      labels:
+        app: redis-app
+        project: rebot
+    spec:
+      containers:
+        - name: rebot-redis
+          image: redis:6.2.6-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 6379
+          command:
+            - redis-server
+          args:
+            - --requirepass
+            - $(REDIS_PASSWORD)
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rebot-redis-secret
+                  key: password
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-app-service
+  labels:
+    project: rebot
+spec:
+  selector:
+    app: redis-app
+  ports:
+    - protocol: TCP
+      port: 6379
+      targetPort: 6379
