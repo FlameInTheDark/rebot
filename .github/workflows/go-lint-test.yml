@@ -1,10 +1,9 @@
 name: Lint/Test
 
 on:
-  push:
-    branches: [ main ]
   pull_request:
     branches: [ main ]
+    types: [created, edited]
 
 jobs:
   build:
