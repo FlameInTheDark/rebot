@@ -59,11 +59,14 @@ jobs:
         cluster_name: 'cluster-1'
         location: 'europe-central2-a'
 
-    - id: 'set image API'
+    - id: 'set-image-api'
+      name: Deploy API
       run: 'kubectl set image --record deployment.v1.apps/api-app-deployment container=rebot-api:latest'
 
-    - id: 'set image Commander'
+    - id: 'set-image-commander'
+      name: Deploy Commander
       run: 'kubectl set image --record deployment.v1.apps/commander-app-deployment container=rebot-commander:latest'
 
-    - id: 'set image Weather'
+    - id: 'set-image-weather'
+      name: Deploy Weather
       run: 'kubectl set image --record deployment.v1.apps/weather-app-deployment container=rebot-weather:latest'
