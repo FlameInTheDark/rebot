@@ -48,45 +48,22 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-    # Deploy
-    - name: Deploy API to cluster
-      uses: ghostzero/kubectl@v1
-      env:
-        KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
+    - id: 'auth'
+      uses: 'google-github-actions/auth@v0.4.3'
       with:
-        args: set image --record deployment.v1.apps/api-app-deployment container=rebot-api:latest
-    - name: Verify API deployment
-      uses: ghostzero/kubectl@v1
-      env:
-        KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
-        KUBECTL_VERSION: "1.15"
-      with:
-        args: '"rollout status deployment.v1.apps/api-app-deployment"'
+        credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
 
-    - name: Deploy Commander to cluster
-      uses: ghostzero/kubectl@v1
-      env:
-        KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
+    - id: 'get-credentials'
+      uses: 'google-github-actions/get-gke-credentials@v0.2.1'
       with:
-        args: set image --record deployment.v1.apps/commander-app-deployment container=rebot-commander:latest
-    - name: Verify Commander deployment
-      uses: ghostzero/kubectl@v1
-      env:
-        KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
-        KUBECTL_VERSION: "1.15"
-      with:
-        args: '"rollout status deployment.v1.apps/commander-app-deployment"'
+        cluster_name: 'cluster-1'
+        location: 'europe-central2-a'
 
-    - name: Deploy Weather to cluster
-      uses: ghostzero/kubectl@v1
-      env:
-        KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
-      with:
-        args: set image --record deployment.v1.apps/weather-app-deployment container=rebot-weather:latest
-    - name: Verify Commander deployment
-      uses: ghostzero/kubectl@v1
-      env:
-        KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
-        KUBECTL_VERSION: "1.15"
-      with:
-        args: '"rollout status deployment.v1.apps/weather-app-deployment"'
+    - id: 'set image API'
+      run: 'kubectl set image --record deployment.v1.apps/api-app-deployment container=rebot-api:latest'
+
+    - id: 'set image Commander'
+      run: 'kubectl set image --record deployment.v1.apps/commander-app-deployment container=rebot-commander:latest'
+
+    - id: 'set image Weather'
+      run: 'kubectl set image --record deployment.v1.apps/weather-app-deployment container=rebot-weather:latest'
