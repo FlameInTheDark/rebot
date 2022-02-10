@@ -47,6 +47,7 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
+    needs: build
     steps:
     - id: 'auth'
       uses: 'google-github-actions/auth@v0.4.3'
@@ -61,12 +62,12 @@ jobs:
 
     - id: 'set-image-api'
       name: Deploy API
-      run: 'kubectl set image --record deployment/api-app-deployment container=rebot-api:latest'
+      run: 'kubectl set image deployment/api-app-deployment rebot-api=rebot-api:latest'
 
     - id: 'set-image-commander'
       name: Deploy Commander
-      run: 'kubectl set image --record deployment/commander-app-deployment container=rebot-commander:latest'
+      run: 'kubectl set image --record deployment/commander-app-deployment rebot-commander=rebot-commander:latest'
 
     - id: 'set-image-weather'
       name: Deploy Weather
-      run: 'kubectl set image --record deployment/weather-app-deployment container=rebot-weather:latest'
+      run: 'kubectl set image --record deployment/weather-app-deployment rebot-weather=rebot-weather:latest'
