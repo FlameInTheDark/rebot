@@ -61,12 +61,12 @@ jobs:
 
     - id: 'set-image-api'
       name: Deploy API
-      run: 'kubectl set image --record deployment.v1.apps/api-app-deployment container=rebot-api:latest'
+      run: 'kubectl set image --record deployment/api-app-deployment container=rebot-api:latest'
 
     - id: 'set-image-commander'
       name: Deploy Commander
-      run: 'kubectl set image --record deployment.v1.apps/commander-app-deployment container=rebot-commander:latest'
+      run: 'kubectl set image --record deployment/commander-app-deployment container=rebot-commander:latest'
 
     - id: 'set-image-weather'
       name: Deploy Weather
-      run: 'kubectl set image --record deployment.v1.apps/weather-app-deployment container=rebot-weather:latest'
+      run: 'kubectl set image --record deployment/weather-app-deployment container=rebot-weather:latest'
