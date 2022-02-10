@@ -5,7 +5,7 @@ on:
     types: [published]
 
 jobs:
-  docker:
+  build:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
@@ -45,6 +45,9 @@ jobs:
         tags: flameinthedark/rebot-weather:latest
         push: true
 
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
     # Deploy
     - name: Deploy API to cluster
       uses: ghostzero/kubectl@v1
