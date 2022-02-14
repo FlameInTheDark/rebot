@@ -8,12 +8,13 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
-type ConsulDiscovery struct {
+// Discovery is a consul discovery client
+type Discovery struct {
 	client *api.Client
 }
 
 // NewConsulClient create new Consul consul client
-func NewConsulClient(address string) (*ConsulDiscovery, error) {
+func NewConsulClient(address string) (*Discovery, error) {
 	cfg := api.DefaultConfig()
 	cfg.Address = address
 
@@ -21,11 +22,11 @@ func NewConsulClient(address string) (*ConsulDiscovery, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &ConsulDiscovery{client: client}, nil
+	return &Discovery{client: client}, nil
 }
 
 // Register new service
-func (d *ConsulDiscovery) Register(id, name string, host string, port int, meta map[string]string) error {
+func (d *Discovery) Register(id, name string, host string, port int, meta map[string]string) error {
 	register := new(api.AgentServiceRegistration)
 	register.Name = name
 	register.ID = id
@@ -52,32 +53,32 @@ func (d *ConsulDiscovery) Register(id, name string, host string, port int, meta 
 }
 
 // Deregister service by ID
-func (d *ConsulDiscovery) Deregister(id string) error {
+func (d *Discovery) Deregister(id string) error {
 	return d.client.Agent().ServiceDeregister(id)
 }
 
 // DiscoverByName discover service by name
-func (d *ConsulDiscovery) DiscoverByName(name string) ([]Service, error) {
+func (d *Discovery) DiscoverByName(name string) ([]Service, error) {
 	return d.DiscoverFilter(fmt.Sprintf("Service == \"%s\"", name))
 }
 
 // DiscoverByTag discover services by tag
-func (d *ConsulDiscovery) DiscoverByTag(tag string) ([]Service, error) {
+func (d *Discovery) DiscoverByTag(tag string) ([]Service, error) {
 	return d.DiscoverFilter(fmt.Sprintf("Tags contains \"%s\"", tag))
 }
 
 // DiscoverByMeta discover services by specified meta
-func (d *ConsulDiscovery) DiscoverByMeta(key, value string) ([]Service, error) {
+func (d *Discovery) DiscoverByMeta(key, value string) ([]Service, error) {
 	return d.DiscoverFilter(fmt.Sprintf("Meta.%s == \"%s\"", key, value))
 }
 
 // DiscoverFilter discover service by specified filter
-func (d *ConsulDiscovery) DiscoverFilter(filter string) ([]Service, error) {
+func (d *Discovery) DiscoverFilter(filter string) ([]Service, error) {
 	data, err := d.client.Agent().ServicesWithFilter(filter)
 	if err != nil {
 		return nil, err
 	}
-	var services []Service
+	var services = make([]Service, 0, len(data))
 	for _, s := range data {
 		id, err := uuid.Parse(s.ID)
 		if err != nil {
@@ -91,8 +92,4 @@ func (d *ConsulDiscovery) DiscoverFilter(filter string) ([]Service, error) {
 		})
 	}
 	return services, nil
-}
-
-func (d *ConsulDiscovery) Close() error {
-	return d.Close()
 }

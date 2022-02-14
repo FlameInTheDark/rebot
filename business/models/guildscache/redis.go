@@ -18,16 +18,16 @@ func NewGuildsRedisCache(rc *redis.Client) *GuildsRedisCache {
 	}
 }
 
-func (c *GuildsRedisCache) FindCommandPrefix(ctx context.Context, guildId string) (string, error) {
-	res := c.client.Get(ctx, fmt.Sprintf("guilds.%s.prefix", guildId))
-	if err := res.Err(); err == redis.Nil {
+func (c *GuildsRedisCache) FindCommandPrefix(ctx context.Context, guildID string) (string, error) {
+	res := c.client.Get(ctx, fmt.Sprintf("guilds.%s.prefix", guildID))
+	if err := res.Err(); errors.Is(err, redis.Nil) {
 		return "", errors.Wrap(err, "prefix not found")
 	}
 	return res.Val(), nil
 }
 
-func (c *GuildsRedisCache) SetCommandPrefix(ctx context.Context, guildId string, prefix string) error {
-	res := c.client.Set(ctx, fmt.Sprintf("guilds.%s.prefix", guildId), prefix, time.Hour)
+func (c *GuildsRedisCache) SetCommandPrefix(ctx context.Context, guildID string, prefix string) error {
+	res := c.client.Set(ctx, fmt.Sprintf("guilds.%s.prefix", guildID), prefix, time.Hour)
 	if err := res.Err(); err != nil {
 		return err
 	}

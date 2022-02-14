@@ -32,7 +32,9 @@ func RunCommand() *cli.Command {
 			default:
 				return fmt.Errorf("unknown log level %q", c.String("log"))
 			}
-			defer logger.Sync()
+			defer func(logger *zap.Logger) {
+				_ = logger.Sync()
+			}(logger)
 
 			logger.Info("service is starting", zap.String("app-name", c.App.Name), zap.String("app-version", c.App.Version))
 			return RunAPIServer(logger)

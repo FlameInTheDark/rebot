@@ -19,6 +19,7 @@ import (
 	"github.com/FlameInTheDark/rebot/foundation/redisdb"
 )
 
+// RunCommanderService ...
 func RunCommanderService(logger *zap.Logger) error {
 	conf, err := config.GetConfig()
 	if err != nil {
@@ -107,12 +108,6 @@ func RunCommanderService(logger *zap.Logger) error {
 		logger.Error("Cannot create Consul client", zap.Error(err))
 		return err
 	}
-	defer func() {
-		cerr := cd.Close()
-		if cerr != nil {
-			logger.Error("Consul client close error", zap.Error(cerr))
-		}
-	}()
 
 	logger.Debug("Creating commander")
 	cmdr, err := service.NewCommander(db, rc, sess, cd, rabbit, logger)

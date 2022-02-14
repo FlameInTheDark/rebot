@@ -23,7 +23,7 @@ const (
 	EndpointOneCall = "https://api.openweathermap.org/data/2.5/onecall"
 )
 
-//Client open weather map client
+// Client open weather map client
 type Client struct {
 	apiKey   string
 	units    string
@@ -74,7 +74,7 @@ func (c *Client) GetForecast(ctx context.Context, lat, lng float64, exclude stri
 	return &data, nil
 }
 
-//GetHourlyForecast get hourly weather from the OpenWeatherMap service
+// GetHourlyForecast get hourly weather from the OpenWeatherMap service
 func (c *Client) GetHourlyForecast(ctx context.Context, lat, lng float64) ([]HourlyForecast, error) {
 	data, err := c.GetForecast(ctx, lat, lng, ExcludeMinutely+","+ExcludeDaily)
 	if err != nil {
@@ -83,7 +83,7 @@ func (c *Client) GetHourlyForecast(ctx context.Context, lat, lng float64) ([]Hou
 	return data.Hourly, nil
 }
 
-//GetDailyForecast get daily weather from the OpenWeatherMap service
+// GetDailyForecast get daily weather from the OpenWeatherMap service
 func (c *Client) GetDailyForecast(ctx context.Context, lat, lng float64) ([]HourlyForecast, error) {
 	data, err := c.GetForecast(ctx, lat, lng, ExcludeMinutely+","+ExcludeHourly)
 	if err != nil {

@@ -59,7 +59,7 @@ func (t *RabbitRegistrarTransport) Start() error {
 	return nil
 }
 
-//AddHandler adds a handler to the worker
+// AddHandler adds a handler to the worker
 func (t *RabbitRegistrarTransport) AddHandler(handler RegistrarHandler) {
 	t.rw.Lock()
 	t.handlers = append(t.handlers, handler)

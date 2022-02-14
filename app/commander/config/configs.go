@@ -10,6 +10,7 @@ import (
 
 var lock = &sync.Mutex{}
 
+// Config contains an environment variables
 type Config struct {
 	Http struct {
 		Port int `env:"HTTP_PORT" env-default:"8080"`
@@ -52,8 +53,10 @@ type Config struct {
 	}
 }
 
+// UUID is a custom uuid type
 type UUID string
 
+// SetValue set value of UUID. Generates new UUID if value is empty
 func (u *UUID) SetValue(s string) error {
 	if s != "" {
 		id, err := uuid.Parse(s)

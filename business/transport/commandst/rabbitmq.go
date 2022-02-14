@@ -34,7 +34,7 @@ type emptyMetrics struct{}
 func (em *emptyMetrics) CommandUsed(command string)   {}
 func (em *emptyMetrics) CommandFailed(command string) {}
 
-//SetErrorMetrics add metrics interface to save metrics commands usage
+// SetErrorMetrics add metrics interface to save metrics commands usage
 func (t *RabbitCommandsTransport) SetErrorMetrics(metrics CommandsMetrics) {
 	t.metrics = metrics
 }

@@ -10,7 +10,7 @@ import (
 )
 
 func TestClient_GetHourlyWeather(t *testing.T) {
-	var lat, lon = float64(42.65258), float64(-73.75623) //float64(51.50853), float64(-0.12574) // London coordinates
+	var lat, lon = 42.65258, -73.75623 // float64(51.50853), float64(-0.12574) // London coordinates
 	client := Client{
 		apiKey:   os.Getenv("OWM_TEST_API_KEY"),
 		units:    UnitsMetric,

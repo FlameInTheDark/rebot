@@ -25,11 +25,13 @@ type Generator struct {
 	bindings   *UnicodeBindings
 }
 
+// ForecastData contains forecast information
 type ForecastData struct {
 	Location string
 	Forecast []ForecastRow
 }
 
+// ForecastRow forecast row
 type ForecastRow struct {
 	IconCode    string
 	Temperature float64
@@ -40,6 +42,7 @@ type ForecastRow struct {
 	Time        time.Time
 }
 
+// NewGenerator creates a new generator
 func NewGenerator(fontPath, iconsPath, bindings string) (*Generator, error) {
 	binds, err := LoadBindings(bindings)
 	if err != nil {
@@ -226,7 +229,7 @@ func (g *Generator) drawHeaderDaily(dc *gg.Context, location string, forecast Fo
 		return err
 	}
 
-	dc.DrawStringAnchored(fmt.Sprintf("%s", forecast.Time.Weekday()), 80, 200, 0.5, 0.5)
+	dc.DrawStringAnchored(forecast.Time.Weekday().String(), 80, 200, 0.5, 0.5)
 	dc.DrawStringAnchored(fmt.Sprintf("H:%d%%", forecast.Humidity), 200, 200, 0.5, 0.5)
 	dc.DrawStringAnchored(fmt.Sprintf("C:%d%%", forecast.Clouds), 350, 200, 0.5, 0.5)
 
@@ -283,10 +286,10 @@ func (g *Generator) drawDays(dc *gg.Context, data []ForecastRow) error {
 	}
 
 	// Days
-	dc.DrawStringAnchored(fmt.Sprintf("%s", data[0].Time.Weekday()), 100, 285, 0, 0.5)
-	dc.DrawStringAnchored(fmt.Sprintf("%s", data[1].Time.Weekday()), 100, 385, 0, 0.5)
-	dc.DrawStringAnchored(fmt.Sprintf("%s", data[2].Time.Weekday()), 100, 485, 0, 0.5)
-	dc.DrawStringAnchored(fmt.Sprintf("%s", data[3].Time.Weekday()), 100, 585, 0, 0.5)
+	dc.DrawStringAnchored(data[0].Time.Weekday().String(), 100, 285, 0, 0.5)
+	dc.DrawStringAnchored(data[1].Time.Weekday().String(), 100, 385, 0, 0.5)
+	dc.DrawStringAnchored(data[2].Time.Weekday().String(), 100, 485, 0, 0.5)
+	dc.DrawStringAnchored(data[3].Time.Weekday().String(), 100, 585, 0, 0.5)
 
 	return nil
 }
@@ -382,12 +385,19 @@ func (g *Generator) drawIcons(dc *gg.Context, data []ForecastRow) error {
 	return nil
 }
 
+// GenerateDaily generates a weather image
 func (g *Generator) GenerateDaily(data *ForecastData) (*bytes.Buffer, error) {
 	dc := gg.NewContext(400, 650)
 
-	g.prepareImage(dc)
-	g.drawWeatherLines(dc)
-	err := g.drawHeaderDaily(dc, data.Location, data.Forecast[0])
+	err := g.prepareImage(dc)
+	if err != nil {
+		return nil, err
+	}
+	err = g.drawWeatherLines(dc)
+	if err != nil {
+		return nil, err
+	}
+	err = g.drawHeaderDaily(dc, data.Location, data.Forecast[0])
 	if err != nil {
 		return nil, err
 	}

@@ -19,6 +19,7 @@ import (
 	"github.com/FlameInTheDark/rebot/foundation/redisdb"
 )
 
+// RunExchangeService runs an exchange service
 func RunExchangeService(logger *zap.Logger) error {
 	conf, err := config.GetConfig()
 	if err != nil {
@@ -113,12 +114,6 @@ func RunExchangeService(logger *zap.Logger) error {
 		logger.Error("Cannot create Consul client", zap.Error(err))
 		return err
 	}
-	defer func() {
-		cerr := cd.Close()
-		if cerr != nil {
-			logger.Error("Consul client close error", zap.Error(cerr))
-		}
-	}()
 
 	app := fiber.New()
 	app.Get("/healthz", func(c *fiber.Ctx) error {
@@ -132,7 +127,7 @@ func RunExchangeService(logger *zap.Logger) error {
 	}
 
 	logger.Debug("Registering service", zap.String("service-name", conf.Consul.ServiceName))
-	err = cd.Register(conf.Consul.ServiceID.String(), conf.Consul.ServiceName, conf.Http.Port, map[string]string{"command_data": meta})
+	err = cd.Register(conf.Consul.ServiceID.String(), conf.Consul.ServiceName, conf.HTTP.Port, map[string]string{"command_data": meta})
 	if err != nil {
 		logger.Error("Cannot register service in consul", zap.Error(err))
 		return err
@@ -159,5 +154,5 @@ func RunExchangeService(logger *zap.Logger) error {
 	}()
 
 	logger.Debug("Listening API")
-	return app.Listen(fmt.Sprintf(":%d", conf.Http.Port))
+	return app.Listen(fmt.Sprintf(":%d", conf.HTTP.Port))
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/FlameInTheDark/rebot/foundation/logs"
 )
 
+// RunCommand is a "run" command for the command line
 func RunCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "run",
@@ -32,7 +33,11 @@ func RunCommand() *cli.Command {
 			default:
 				return fmt.Errorf("unknown log level %q", c.String("log"))
 			}
-			defer logger.Sync()
+			defer func(logger *zap.Logger) {
+				err := logger.Sync()
+				if err != nil {
+				}
+			}(logger)
 
 			logger.Info("service is starting", zap.String("app-name", c.App.Name), zap.String("app-version", c.App.Version))
 			return RunExchangeService(logger)

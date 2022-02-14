@@ -3,40 +3,46 @@ package guilds
 import (
 	"context"
 	"database/sql"
-	"github.com/FlameInTheDark/rebot/business/models/guildscache"
-	"github.com/FlameInTheDark/rebot/business/models/guildsdb"
+	"time"
+
 	"github.com/go-redis/redis/v8"
 	"github.com/jmoiron/sqlx"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
-	"time"
+
+	"github.com/FlameInTheDark/rebot/business/models/guildscache"
+	"github.com/FlameInTheDark/rebot/business/models/guildsdb"
 )
 
-type GuildsService struct {
+// Service is a guild service
+type Service struct {
 	guilds guildsdb.Querier
 	cache  guildscache.GuildsCache
 
 	logger *zap.Logger
 }
 
-func NewGuildsService(db *sqlx.DB, rc *redis.Client, logger *zap.Logger) *GuildsService {
-	return &GuildsService{
+// NewGuildsService creates a new guilds service
+func NewGuildsService(db *sqlx.DB, rc *redis.Client, logger *zap.Logger) *Service {
+	return &Service{
 		guilds: guildsdb.New(db),
 		cache:  guildscache.NewGuildsRedisCache(rc),
 		logger: logger,
 	}
 }
 
-func (g *GuildsService) GetCommandPrefix(guildId string) (string, error) {
+// GetCommandPrefix get a guild command prefix from database or redis cache if available, else create one
+func (g *Service) GetCommandPrefix(guildID string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
 	defer cancel()
-	cachedPrefix, err := g.cache.FindCommandPrefix(ctx, guildId)
+	cachedPrefix, err := g.cache.FindCommandPrefix(ctx, guildID)
 	if err == nil {
 		return cachedPrefix, nil
 	}
-	guild, err := g.guilds.Find(ctx, guildId)
+	guild, err := g.guilds.Find(ctx, guildID)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			guild, err = g.guilds.Create(ctx, guildId)
+		if errors.Is(err, sql.ErrNoRows) {
+			guild, err = g.guilds.Create(ctx, guildID)
 			if err != nil {
 				return "", err
 			}
@@ -44,7 +50,7 @@ func (g *GuildsService) GetCommandPrefix(guildId string) (string, error) {
 			return "", err
 		}
 	}
-	err = g.cache.SetCommandPrefix(ctx, guildId, guild.CommandPrefix)
+	err = g.cache.SetCommandPrefix(ctx, guildID, guild.CommandPrefix)
 	if err != nil {
 		g.logger.Error("unable cache guild prefix", zap.Error(err))
 	}

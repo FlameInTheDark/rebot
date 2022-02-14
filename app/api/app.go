@@ -33,7 +33,7 @@ func RunAPIServer(logger *zap.Logger) error {
 		Username:   conf.Database.Username,
 		Password:   conf.Database.Password,
 		DisableTLS: conf.Database.DisableTLS,
-		CertPath:   conf.Database.CetrPath,
+		CertPath:   conf.Database.CertPath,
 		Logger:     logs.NewDBLogger(logger),
 	}
 
@@ -65,12 +65,7 @@ func RunAPIServer(logger *zap.Logger) error {
 		logger.Error("Cannot create Consul client", zap.Error(err))
 		return err
 	}
-	defer func() {
-		cerr := cd.Close()
-		if cerr != nil {
-			logger.Error("Consul client close error", zap.Error(cerr))
-		}
-	}()
+
 	err = cd.Register(conf.Consul.ServiceID.String(), conf.Consul.ServiceName, conf.Consul.ServiceHost, conf.HTTP.Port, nil)
 	if err != nil {
 		logger.Error("Cannot register service in consul", zap.Error(err))

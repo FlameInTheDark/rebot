@@ -8,10 +8,11 @@ import (
 	"go.uber.org/zap"
 )
 
+// LoggerKey is an key for the context.Context
 const LoggerKey = "logger"
 
-//HttpLoggerMiddleware create logger middleware to http requests
-func HttpLoggerMiddleware(logger *zap.Logger) func(next http.Handler) http.Handler {
+// HTTPLoggerMiddleware create logger middleware to http requests
+func HTTPLoggerMiddleware(logger *zap.Logger) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			scheme := "http"

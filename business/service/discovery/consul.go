@@ -9,8 +9,9 @@ import (
 	"github.com/FlameInTheDark/rebot/foundation/consul"
 )
 
+// ConsulDiscovery is a discovery service
 type ConsulDiscovery struct {
-	client   *consul.ConsulDiscovery
+	client   *consul.Discovery
 	handlers []HandlerFunc
 
 	stop chan struct{}
@@ -19,12 +20,15 @@ type ConsulDiscovery struct {
 	mu     sync.RWMutex
 }
 
+// HandlerFunc discovery handler. Called when new service is discovered
 type HandlerFunc func(discovery consul.Service)
 
-func NewConsulDiscoveryService(client *consul.ConsulDiscovery, logger *zap.Logger) *ConsulDiscovery {
+// NewConsulDiscoveryService returns a new ConsulDiscoveryService with logger
+func NewConsulDiscoveryService(client *consul.Discovery, logger *zap.Logger) *ConsulDiscovery {
 	return &ConsulDiscovery{client: client, logger: logger}
 }
 
+// Discover discover services by name
 func (d *ConsulDiscovery) Discover(name string) []consul.Service {
 	services, err := d.client.DiscoverByName(name)
 	if err != nil {
@@ -33,18 +37,20 @@ func (d *ConsulDiscovery) Discover(name string) []consul.Service {
 	return services
 }
 
+// AddHandler ...
 func (d *ConsulDiscovery) AddHandler(f HandlerFunc) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.handlers = append(d.handlers, f)
 }
 
+// Start starts a service discovery for the given service name
 func (d *ConsulDiscovery) Start(name string) {
 	d.discover(name) // first discover
-	t := time.Tick(time.Minute)
+	ticker := time.NewTicker(time.Minute)
 	for {
 		select {
-		case <-t:
+		case <-ticker.C:
 			d.discover(name)
 		case <-d.stop:
 			return
@@ -59,7 +65,7 @@ func (d *ConsulDiscovery) discover(name string) {
 		return
 	}
 	d.logger.Debug("Found consul services", zap.Int("services-count", len(services)))
-	for i, _ := range services {
+	for i := range services {
 		d.mu.RLock()
 		for _, h := range d.handlers {
 			h(services[i])

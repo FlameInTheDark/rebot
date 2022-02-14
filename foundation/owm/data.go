@@ -2,11 +2,13 @@ package owm
 
 import "time"
 
+// ForecastError contains API error message
 type ForecastError struct {
 	Message string `json:"message"`
 	Cod     string `json:"cod"`
 }
 
+// Forecast is a requested weather data
 type Forecast struct {
 	Lat            float64          `json:"lat"`
 	Lon            float64          `json:"lon"`
@@ -18,6 +20,7 @@ type Forecast struct {
 	Daily          []DailyForecast  `json:"daily"`
 }
 
+// CurrentForecast contains the forecast for the current day
 type CurrentForecast struct {
 	CurrentTime int64         `json:"dt"`
 	SunriseTime int64         `json:"sunrise"`
@@ -38,18 +41,22 @@ type CurrentForecast struct {
 	Weather     []Weather     `json:"weather"`
 }
 
+// GetCurrentTime returns current time
 func (f *CurrentForecast) GetCurrentTime() time.Time {
 	return time.Unix(f.CurrentTime, 0)
 }
 
+// GetSunriseTime returns sunrise time
 func (f *CurrentForecast) GetSunriseTime() time.Time {
 	return time.Unix(f.SunriseTime, 0)
 }
 
+// GetSunsetTime returns sunset time
 func (f *CurrentForecast) GetSunsetTime() time.Time {
 	return time.Unix(f.SunsetTime, 0)
 }
 
+// HourlyForecast contains hourly weather forecast
 type HourlyForecast struct {
 	ForecastTime int64         `json:"dt"`
 	Temperature  float64       `json:"temp"`
@@ -68,10 +75,12 @@ type HourlyForecast struct {
 	Weather      []Weather     `json:"weather"`
 }
 
+// GetForecastTime returns forecast time
 func (f *HourlyForecast) GetForecastTime() time.Time {
 	return time.Unix(f.ForecastTime, 0)
 }
 
+// DailyForecast contains daily weather Forecast
 type DailyForecast struct {
 	ForecastTime int64            `json:"dt"`
 	SunriseTime  int64            `json:"sunrise"`
@@ -95,26 +104,32 @@ type DailyForecast struct {
 	POP          float64          `json:"pop"`
 }
 
+// GetForecastTime returns forecast time for the forecast day
 func (d *DailyForecast) GetForecastTime() time.Time {
 	return time.Unix(d.ForecastTime, 0)
 }
 
+// GetSunriseTime return sunrise time for the forecast day
 func (d *DailyForecast) GetSunriseTime() time.Time {
 	return time.Unix(d.SunriseTime, 0)
 }
 
+// GetSunsetTime returns sunset time for the forecast day
 func (d *DailyForecast) GetSunsetTime() time.Time {
 	return time.Unix(d.SunsetTime, 0)
 }
 
+// GetMoonriseTime returns moonrise time for the forecast day
 func (d *DailyForecast) GetMoonriseTime() time.Time {
 	return time.Unix(d.MoonriseTime, 0)
 }
 
+// GetMoonsetTime returns moonset time for the forecast day
 func (d *DailyForecast) GetMoonsetTime() time.Time {
 	return time.Unix(d.MoonsetTime, 0)
 }
 
+// DailyTemperature contains temperature data for the daily forecast
 type DailyTemperature struct {
 	Day   float64 `json:"day"`
 	Min   float64 `json:"min"`
@@ -124,6 +139,7 @@ type DailyTemperature struct {
 	Morn  float64 `json:"morn"`
 }
 
+// DailyFeelsLike returns temperature that feels like for the forecast day
 type DailyFeelsLike struct {
 	Day   float64 `json:"day"`
 	Night float64 `json:"night"`
@@ -131,17 +147,20 @@ type DailyFeelsLike struct {
 	Morn  float64 `json:"morn"`
 }
 
+// Weather contains weather data
 type Weather struct {
-	Id          int    `json:"id"`
+	ID          int    `json:"id"`
 	Main        string `json:"main"`
 	Description string `json:"description"`
 	Icon        string `json:"icon"`
 }
 
+// Precipitation ...
 type Precipitation struct {
 	H float64 `json:"1h"`
 }
 
+// Minutely ...
 type Minutely struct {
 	Dt            int `json:"dt"`
 	Precipitation int `json:"precipitation"`

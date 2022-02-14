@@ -21,7 +21,7 @@ type Commander struct {
 	logger    *zap.Logger
 }
 
-func NewCommander(db *sqlx.DB, rc *redis.Client, sess *discordgo.Session, cd *consul.ConsulDiscovery, rabbit *amqp.Connection, logger *zap.Logger) (*Commander, error) {
+func NewCommander(db *sqlx.DB, rc *redis.Client, sess *discordgo.Session, cd *consul.Discovery, rabbit *amqp.Connection, logger *zap.Logger) (*Commander, error) {
 	logger.Debug("Creating rabbit commands transport")
 	cmdService, err := commandst.NewRabbitCommandsTransport(rabbit, logger)
 	if err != nil {

@@ -17,14 +17,17 @@ const (
 
 var _ sqldblogger.Logger = (*DBLogger)(nil)
 
+// DBLogger is a database logger
 type DBLogger struct {
 	log *zap.Logger
 }
 
+// NewDBLogger create a new database logger with zap.Logger
 func NewDBLogger(log *zap.Logger) *DBLogger {
 	return &DBLogger{log: log.With(zap.String("module", "database"))}
 }
 
+// Log print a database action log
 func (dbl *DBLogger) Log(_ context.Context, level sqldblogger.Level, msg string, data map[string]interface{}) {
 	dbl.trimLongData(data)
 	switch level {
@@ -40,7 +43,7 @@ func (dbl *DBLogger) Log(_ context.Context, level sqldblogger.Level, msg string,
 }
 
 // trimLongData trims long data values with keys in "LongDataFields"
-func (z *DBLogger) trimLongData(data map[string]interface{}) {
+func (dbl *DBLogger) trimLongData(data map[string]interface{}) {
 	for k, v := range data {
 		if !strings.Contains(LongDataFields, k) {
 			continue

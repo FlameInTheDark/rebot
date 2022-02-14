@@ -21,11 +21,12 @@ type Geoname struct {
 	Lng         string `json:"lng"`
 }
 
-// GetCoordinates returns latitude and longitude
+// Coordinates returns latitude and longitude
 func (g *Geoname) Coordinates() (string, string) {
 	return g.Lat, g.Lng
 }
 
+// CoordinatesFloat64 converts coordinates to float64
 func (g *Geoname) CoordinatesFloat64() (float64, float64, error) {
 	lat, err := strconv.ParseFloat(g.Lat, 64)
 	if err != nil {

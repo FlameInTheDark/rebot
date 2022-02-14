@@ -2,8 +2,10 @@ package exchange
 
 import (
 	"bytes"
-	"github.com/FlameInTheDark/rebot/business/models/exchangedb"
+
 	"github.com/jmoiron/sqlx"
+
+	"github.com/FlameInTheDark/rebot/business/models/exchangedb"
 )
 
 type Service struct {

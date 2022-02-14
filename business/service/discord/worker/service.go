@@ -15,7 +15,7 @@ import (
 type DiscordWorker struct {
 	session       *discordgo.Session
 	events        *EventRegistrar
-	guilds        *guilds.GuildsService
+	guilds        *guilds.Service
 	commandSender commandst.CommandsSender
 	logger        *zap.Logger
 }

@@ -7,10 +7,11 @@ import (
 	"net/url"
 
 	"github.com/jmoiron/sqlx"
-	_ "github.com/lib/pq"
+	_ "github.com/lib/pq" // PostgreSQL database driver
 	sqldblogger "github.com/simukti/sqldb-logger"
 )
 
+// Config is a database configuration
 type Config struct {
 	Host       string
 	Port       int

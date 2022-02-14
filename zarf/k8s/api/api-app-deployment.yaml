@@ -34,13 +34,10 @@ spec:
             - name: DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: rebot-postgres-secret
+                  name: postgresql-1-secret
                   key: password
             - name: DATABASE_HOST
-              valueFrom:
-                configMapKeyRef:
-                  name: db-app-configmap
-                  key: host
+              value: postgresql-1-postgresql-svc
             - name: DATABASE_PORT
               valueFrom:
                 configMapKeyRef:
@@ -137,6 +134,5 @@ spec:
   ports:
     - name: api-app-listener
       protocol: TCP
-      port: 80
+      port: 8080
       targetPort: 8080
-  type: LoadBalancer

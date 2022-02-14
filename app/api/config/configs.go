@@ -10,6 +10,7 @@ import (
 
 var lock = &sync.Mutex{}
 
+// Config contains an environment variables
 type Config struct {
 	HTTP struct {
 		Port int `env:"HTTP_PORT" env-default:"8080"`
@@ -21,7 +22,7 @@ type Config struct {
 		Username   string `env:"DATABASE_USERNAME" env-default:"postgres"`
 		Password   string `env:"DATABASE_PASSWORD" env-default:"postgres"`
 		DisableTLS bool   `env:"DATABASE_DISABLE_TLS" env-default:"true"`
-		CetrPath   string `env:"DATABASE_CERT_PATH"`
+		CertPath   string `env:"DATABASE_CERT_PATH"`
 	}
 	Consul struct {
 		Address     string `env:"CONSUL_ADDR" env-default:"consul:8500"`
@@ -37,8 +38,10 @@ type Config struct {
 	}
 }
 
+// UUID is a custom uuid type
 type UUID string
 
+// SetValue set value of UUID. Generates new UUID if value is empty
 func (u *UUID) SetValue(s string) error {
 	if s != "" {
 		*u = UUID(s)

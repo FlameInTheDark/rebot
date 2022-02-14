@@ -18,21 +18,25 @@ var (
 	errNilContext = errors.New("draw context is nil")
 )
 
+// Generator is an exchange rates image generator
 type Generator struct {
 	fontFile  string
 	fontCache map[string]font.Face
 }
 
+// NewGenerator creates a new Generator
 func NewGenerator(fontFile string) *Generator {
 	return &Generator{fontFile: fontFile}
 }
 
+// Rates rates data
 type Rates struct {
 	Base   string
 	Amount float64
 	Rates  []RateRow
 }
 
+// RateRow contains rate data for the currency
 type RateRow struct {
 	Currency string
 	Exchange float64
@@ -76,6 +80,7 @@ func (g *Generator) drawRateLine(dc *gg.Context, name string, amount, position f
 	dc.SetRGB255(234, 89, 65)
 }
 
+// GenerateExchangeRates creates a new exchange rates image
 func (g *Generator) GenerateExchangeRates(rates Rates) (*bytes.Buffer, error) {
 	pictureHeight := (len(rates.Rates) * rateRowHeight) + rateHeaderHeight
 	dc := gg.NewContext(rateWidth, pictureHeight)

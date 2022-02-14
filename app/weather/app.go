@@ -24,6 +24,7 @@ import (
 	"github.com/FlameInTheDark/rebot/foundation/wgen"
 )
 
+// RunWeatherService ...
 func RunWeatherService(logger *zap.Logger) error {
 	conf, err := config.GetConfig()
 	if err != nil {
@@ -142,12 +143,6 @@ func RunWeatherService(logger *zap.Logger) error {
 		logger.Error("Cannot create Consul client", zap.Error(err))
 		return err
 	}
-	defer func() {
-		cerr := cd.Close()
-		if cerr != nil {
-			logger.Error("Consul client close error", zap.Error(cerr))
-		}
-	}()
 
 	app := fiber.New()
 	app.Get("/healthz", func(c *fiber.Ctx) error {
@@ -173,7 +168,7 @@ func RunWeatherService(logger *zap.Logger) error {
 		conf.Consul.ServiceID.String(),
 		conf.Consul.ServiceName,
 		conf.Consul.ServiceHost,
-		conf.Http.Port,
+		conf.HTTP.Port,
 		map[string]string{"command_data": meta},
 	)
 	if err != nil {
@@ -202,5 +197,5 @@ func RunWeatherService(logger *zap.Logger) error {
 	}()
 
 	logger.Debug("Listening API")
-	return app.Listen(fmt.Sprintf(":%d", conf.Http.Port))
+	return app.Listen(fmt.Sprintf(":%d", conf.HTTP.Port))
 }

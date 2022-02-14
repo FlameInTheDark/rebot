@@ -7,7 +7,7 @@ import (
 	"github.com/FlameInTheDark/rebot/app/api/handlers/responses"
 )
 
-//API register api routes
+// API register api routes
 func API(r fiber.Router, services *Services, logger *zap.Logger) {
 	authGroup := NewAuthHandlersGroup()
 	ag := r.Group("/auth")

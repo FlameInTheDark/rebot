@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-//CreateLogger creates production logger
+// CreateLogger creates production logger
 func CreateLogger() *zap.Logger {
 	w := zapcore.AddSync(os.Stdout)
 	core := zapcore.NewCore(
